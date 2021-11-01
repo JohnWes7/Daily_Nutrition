@@ -1,3 +1,12 @@
+# 忽略data下的所有文件
+/data/*
+
+# 忽略下载图片下的所有文件
+/tutu/*
+
+# 忽略vs_background下所有文件
+/vs_background/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
