@@ -2,6 +2,7 @@
 @author : johnwest
 @github : 
 '''
+from types import FunctionType
 from typing import Any
 from urllib import request
 from urllib.parse import urlencode
@@ -176,24 +177,46 @@ def dicovery_json(head):
     return resp_json
 
 
-def download_idlist(id_list: list, head):
+def append_record_pid_local(pid, is_success):
+    '''
+    下载pid后回调函数
+    '''
+    #如果没有成功下载不执行
+    if not is_success:
+        return
+
+    record = get_json_data(config.download_record_path)
+    if record == None:
+        record = []
+    
+    record.append(pid)
+    save_str_data(config.download_record_path,json.dumps(record))
+
+
+def download_idlist(id_list: list, head, callback_delegate:FunctionType = None):
     '''
     下载所有的id_list 里面的 pid
-    返回所有下载成功的pid
+    返回所有下载成功的pid\n
+    如果传入了委托  会在每下载完一个pid时调用  委托会传入一个 pid: str 和 is_success: bool\n
+    delegat: method(pid: str, is_success: bool)\n
     '''
     opener = build_custom_opener()
 
     success_list = []
     for id in id_list:
-        is_success = download_id(pid=id, head=head, opener=opener, image_quality=config.get_image_quality())
+        is_success = download_id(
+            pid=id, head=head, opener=opener, image_quality=config.get_image_quality(), callback_delegate=callback_delegate)
         if is_success:
             success_list.append(id)
 
     return success_list
 
 
-def download_id(pid, head, image_quality: str = 'original', opener=None):
+def download_id(pid, head, image_quality: str = 'original', opener=None,callback_delegate:FunctionType = None):
     '''
+    pid 要下载的pid image_quality图片质量\n
+    如果传入了委托  会在函数最后结束时调用 委托会传入一个 pid: str 和 is_success: bool\n
+    delegat: method(pid: str, is_success: bool)\n
     用提供的 head 和opener下载 pid中的所有画
     如果没有opener则用build_custom_opener()生成一个新的
     '''
@@ -280,10 +303,18 @@ def download_id(pid, head, image_quality: str = 'original', opener=None):
     ans = True
     for condition in is_successful:
         ans = ans and condition
+    
+    if type(callback_delegate) == FunctionType:
+        callback_delegate(pid,ans)
+
     return ans
 
 
 def parsing_tutu_data2(jsondata):
+    '''
+    解析 pixiv_discovery_api2返回的json数据\n
+    从中提取出一个推荐pid的列表并返回
+    '''
     id_list = []
 
     re_list = jsondata.get('body').get('recommendedIllusts')
@@ -344,7 +375,6 @@ def until_linkup():
     return discoveryjson
 
 
-
 def contrast_with_localrecord(id_list: list):
     '''
     和本地下载记录对比 返回一个字典包含了 
@@ -355,26 +385,26 @@ def contrast_with_localrecord(id_list: list):
     record = get_json_data(config.download_record_path)
     if record == None:
         record = []
-    
-    filtrate_list = []
-    final_list = []
+
+    recorded = []
+    unrecord = []
     for id in id_list:
         if id in record:
-            filtrate_list.append(id)
+            recorded.append(id)
         else:
-            final_list.append(id)
-    
-    
+            unrecord.append(id)
 
+    id_dict = {
+        'record': record,
+        'unrecord': unrecord,
+        'recorded': recorded
+    }
+    return id_dict
 
 
 
 if __name__ == '__main__':
     tips()
-
-    record = get_json_data(config.download_record_path)
-    if record == None:
-        record = []
 
     # 是否强制执行登录
     force_login()
@@ -385,42 +415,28 @@ if __name__ == '__main__':
         input('没有获取到数据 结束进程')
         sys.exit(1)
 
-
     # 开始解析数据
     # 获得id列表
     id_list = parsing_tutu_data2(discoveryjson)
-    print(f'pixiv 根据xp推荐 返回了{len(id_list)}个pid ：')
-    print(id_list)
-    filtrate_list = []
-    final_list = []
-    for id in id_list:
-        if id in record:
-            filtrate_list.append(id)
-        else:
-            final_list.append(id)
-    print(f'其中有{len(filtrate_list)}个id已经下载过 : ')
-    print(filtrate_list)
-    print(f'剩余{len(final_list)}个 : ')
-    print(final_list)
+    print(f'pixiv 根据xp推荐 返回了{len(id_list)}个pid ：\n{id_list}')
+    # 对比
+    id_dict = contrast_with_localrecord(id_list)
+    print('其中有', len(id_dict.get('recorded')),'个id已经下载过 : \n', id_dict.get('recorded'))
+    print('剩余', len(id_dict.get('unrecord')),'个 : \n', id_dict.get('unrecord'))
     input('回车确认开始下载')
 
-    
     # 下载list中的所有pidhua
+    unrecord = id_dict.get('unrecord').copy()
     print('='*30, '开始下载', '='*30)
     head = get_head_with_cookie()
-    success_list = download_idlist(id_list=final_list, head=head)
+    success_list = download_idlist(id_list=unrecord, head=head, callback_delegate=append_record_pid_local)
     print(f'下载成功数 ：{len(success_list)}')
     print(success_list)
 
-    #统计失败
+    # 统计失败
     for id in success_list:
-        final_list.remove(id)
-    print(f'下载失败数{len(final_list)}')
-    print(final_list)
-
-
-    #保存已经下载过的列表
-    record.extend(success_list)
-    save_str_data(config.download_record_path, json.dumps(record))
+        unrecord.remove(id)
+    print(f'下载失败数{len(unrecord)}')
+    print(unrecord)
 
     input('done')
