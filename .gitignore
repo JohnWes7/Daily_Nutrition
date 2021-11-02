@@ -1,11 +1,14 @@
 # 忽略data下的所有文件
 /data/*
+!/data/.gitkeep
 
 # 忽略下载图片下的所有文件
 /tutu/*
+!/tutu/.gitkeep
 
 # 忽略vs_background下所有文件
 /vs_background/*
+!/vs_background/.gitkeep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

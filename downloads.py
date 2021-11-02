@@ -1,3 +1,7 @@
+'''
+@author : johnwest
+@github : 
+'''
 from typing import Any
 from urllib import request
 from urllib.parse import urlencode
@@ -340,12 +344,37 @@ def until_linkup():
     return discoveryjson
 
 
+
+def contrast_with_localrecord(id_list: list):
+    '''
+    和本地下载记录对比 返回一个字典包含了 
+    record：本地下载列表
+    unrecord：对比之后发现没有被记录的
+    recorded：已经被记录过的项
+    '''
+    record = get_json_data(config.download_record_path)
+    if record == None:
+        record = []
+    
+    filtrate_list = []
+    final_list = []
+    for id in id_list:
+        if id in record:
+            filtrate_list.append(id)
+        else:
+            final_list.append(id)
+    
+    
+
+
+
+
 if __name__ == '__main__':
     tips()
 
-    recode = get_json_data(config.download_record_path)
-    if recode == None:
-        recode = []
+    record = get_json_data(config.download_record_path)
+    if record == None:
+        record = []
 
     # 是否强制执行登录
     force_login()
@@ -365,13 +394,13 @@ if __name__ == '__main__':
     filtrate_list = []
     final_list = []
     for id in id_list:
-        if id in recode:
+        if id in record:
             filtrate_list.append(id)
         else:
             final_list.append(id)
     print(f'其中有{len(filtrate_list)}个id已经下载过 : ')
     print(filtrate_list)
-    print(f'即将下载{len(final_list)}个 : ')
+    print(f'剩余{len(final_list)}个 : ')
     print(final_list)
     input('回车确认开始下载')
 
@@ -391,7 +420,7 @@ if __name__ == '__main__':
 
 
     #保存已经下载过的列表
-    recode.extend(success_list)
-    save_str_data(config.download_record_path, json.dumps(recode))
+    record.extend(success_list)
+    save_str_data(config.download_record_path, json.dumps(record))
 
     input('done')
