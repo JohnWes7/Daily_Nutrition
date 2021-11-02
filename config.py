@@ -1,37 +1,66 @@
 import os
 import json
+import configparser
+
+# 创文件夹（防止被删）
+datadir = os.path.dirname(__file__) + '/data/'
+if not os.path.exists(datadir):
+    os.makedirs(datadir)
+defaultutudir = os.path.dirname(__file__) + '/tutu/'
+if not os.path.exists(defaultutudir):
+    os.makedirs(defaultutudir)
 
 # 通过静态方法调用放外面
-setting = {
-    'image_quality': 'original',  # thumb_mini small regular original
-    'is_cover': False,
-    'browser': 'chrome',  # firefox
-    'forcelogin': False
+# 默认设置
+default_setting = {
+    'image_quality': 'original',    # thumb_mini small regular original 图片质量
+    'is_cover': False,              # 是否覆盖
+    'browser': 'chrome',            # firefox
+    'forcelogin': False,            # 是否强制登录
+    'download_path' : defaultutudir,# 下载文件夹
+    'is_proxies' : True,            # 是否启用代理
+    'proxies' : {                   # 代理
+        'http': 'http://127.0.0.1:1080',
+        'https': 'https://127.0.0.1:1080'
+    },
+    'mode' : 'save',
+    'limit' : 60,
+    'lang' : 'zh'
 }
+
+# section名称
+ads = 'auto_download_setting'
+link = 'link'
+
+# 读取Config.ini
+conf_path = os.path.dirname(__file__) + '/Config.ini'
+conf = configparser.ConfigParser()
+conf.read(conf_path, encoding='utf-8')
 
 
 class config:
-    # 直接通过属性名调用放里面
+    # 直接通过属性名调用 不可更改
     # 文件路径
     cookie_path = os.path.dirname(__file__) + '/data/cookies.json'
-    tutu_data_path = os.path.dirname(__file__) + '/data/tutu_list.json'
+    ajax_discovery_data_path = os.path.dirname(
+        __file__) + '/data/wwwpixivnet_ajax_discovery_artworks.json'
+    # 驱动位置
     chromedriver_exe_path = os.path.dirname(__file__) + '/chromedriver.exe'
     geckodriver_exe_path = os.path.dirname(__file__) + '/geckodriver.exe'
-    browsermobproxy_bin_path = os.path.dirname(__file__) + '/browsermob-proxy-2.1.4/bin/browsermob-proxy.bat'
 
     # 文件夹路径
-    data_dir = os.path.dirname(__file__) + '/data/'
-    tutu_dir_path = os.path.dirname(__file__) + '/tutu/'
-    backgroun_pool_path = tutu_dir_path
-    background_dir_path = os.path.dirname(__file__) + '/vs_background/'
+    data_dir = datadir
+
+
+    #自定义cookie
+    custom_cookie = {
+
+    }
+
 
     pixiv = 'https://www.pixiv.net/'
     pixiv_login_page = 'https://accounts.pixiv.net/login?lang=zh&source=pc&view_type=page&ref=wwwtop_accounts_index'
     discover_page = 'https://www.pixiv.net/discovery'
-
-    custom_cookie = {
-        # 'tag_view_ranking': "RTJMXD26Ak~RcahSSzeRf~jH0uD88V6F~zyKU3Q5L4C~pzzjRSV6ZO~Bd2L9ZBE8q~Ie2c51_4Sp~bopfpc8En6~XDEWeW9f9i~D0nMcn6oGk~Lt-oEicbBr~eVxus64GZU~LJo91uBPz4~7WfWkHyQ76~q303ip6Ui5~QYelAhYfEH~1HSjrqSB3U~Dd2BFtvC_a~BtXd1-LPRH~KN7uxuR89w~aVmLrbYnSr~K8esoIs2eW~-LSsLGmCIU~gVfGX_rH_Y~skx_-I2o4Y~8Q8mLCEW16~tgP8r-gOe_~qUVF3aasqv~PzEXgc_S56~Wka710VIT8~qnGN-oHRQo~D26FCUKCS8~nuuOi_zFTA~ePN3h1AXKX~lQdVtncC-e~X_1kwTzaXt~9V46Zz_N_N~rOnsP2Q5UN~xVHdz2j0kF~cFXtS-flQO~EUwzYuPRbU~2QXu36FK5_~SW0bXgRvYs~lXvRdAunvV~57UnBqevnT~aKhT3n4RHZ~HfqELC_-Q3~Z4hQZu-rU-~_EOd7bsGyl~ziiAzr_h04~_sjpLQz14H~qmix1djJUJ~-StjcwdYwv~jk9IzfjZ6n~QaiOjmwQnI~BSlt10mdnm~gatroTOnfX~MhieHQxNXo~zdx7NJPPfr~y7byyDCjIW~CBKuoUuA6J"
-    }
 
     @staticmethod
     def get_local_cookie():
@@ -42,16 +71,78 @@ class config:
 
     @staticmethod
     def get_image_quality():
-        return 'original' if setting.get('image_quality') == None else setting.get('image_quality')
+        image_quality = conf.get(
+            ads, 'image_quality', fallback=default_setting.get('image_quality'))
+        if image_quality.__eq__('thumb_mini') or image_quality.__eq__('small') or image_quality.__eq__('regular') or image_quality.__eq__('original'):
+            return image_quality
+
+        return default_setting.get('image_quality')
 
     @staticmethod
     def get_is_cover():
-        return False if setting.get('is_cover') == None else setting.get('is_cover')
+        is_cover = conf.getboolean(
+            ads, 'is_cover', fallback=default_setting.get('is_cover'))
+        return is_cover
 
     @staticmethod
     def get_browser():
-        return 'chrome' if setting.get('browser') == None else setting.get('browser')
+        browser = conf.get(
+            link, 'browser', fallback=default_setting.get('browser'))
+        if browser.__eq__('chrome') or browser.__eq__('firefox'):
+            return browser
+
+        return default_setting.get('browser')
 
     @staticmethod
     def get_forcelogin():
-        return False if setting.get('forcelogin') == None else setting.get('forcelogin')
+        forcelogin = conf.getboolean(
+            ads, 'forcelogin', fallback=default_setting.get('forcelogin'))
+        return forcelogin
+    
+    @staticmethod
+    def get_ads_download_path():
+        path = conf.get(ads, 'download_path', fallback=default_setting.get('download_path'))
+        if os.path.exists(path=path):
+            if path[path.__len__() - 1].__eq__('/'):
+                return path
+            return path + '/'
+        return default_setting.get('download_path')
+
+    @staticmethod
+    def get_is_proxies():
+        is_proxies = conf.getboolean(
+            link, 'is_proxies', fallback=default_setting.get('is_proxies'))
+        return is_proxies
+    
+    @staticmethod
+    def get_proxies_dict():
+        http = conf.get(link, 'http', fallback='http://127.0.0.1:1080')
+        https = conf.get(link, 'https', fallback='https://127.0.0.1:1080')
+
+        proxies_dict = {
+            'http' : http,
+            'https' : https
+        }
+        return proxies_dict
+    
+    @staticmethod
+    def get_discovery_query_dict():
+        qd = {}
+
+        mode = conf.get(ads, 'mode', fallback=default_setting.get('mode'))
+        if mode.__eq__('save') or mode.__eq__('all') or mode.__eq__('r18'):
+            qd['mode'] = mode
+        else:
+            qd['mode'] = default_setting.get('mode')
+        
+        limit = conf.getint(ads, 'limit', fallback=default_setting.get('limit'))
+        qd['limit'] = limit
+
+        lang = conf.get(ads, 'lang', fallback=default_setting.get('lang'))
+        if lang.__eq__('en') or lang.__eq__('ko') or lang.__eq__('zh') or lang.__eq__('zh_tw') or lang.__eq__('romaji'):
+            qd['lang'] = lang
+        else:
+            qd['lang'] = default_setting.get('lang')
+        
+        return qd
+

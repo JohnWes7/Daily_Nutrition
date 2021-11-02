@@ -9,10 +9,12 @@ from lxml import etree
 from config import config
 import json
 import os
+import sys
+import custom_driver
 
 
 pixiv_discovery_api1 = 'https://www.pixiv.net/rpc/recommender.php?type=illust&sample_illusts=auto&num_recommendations=60&page=discovery&mode=all'
-pixiv_discovery_api2 = 'https://www.pixiv.net/ajax/discovery/artworks?mode=all&limit=20&lang=zh'
+pixiv_discovery_api2 = 'https://www.pixiv.net/ajax/discovery/artworks'
 
 
 def is_done():
@@ -23,14 +25,14 @@ def is_done():
 def get_json_data(path: str):
     data = None
     if os.path.exists(path):
-        with open(path, 'r') as file:
+        with open(path, 'r', encoding='utf8') as file:
             data = json.loads(file.read())
 
     return data
 
 
 def save_str_data(path: str, json_str: str):
-    with open(path, 'w') as file:
+    with open(path, 'w', encoding='utf8') as file:
         file.write(json_str)
 
 
@@ -39,35 +41,23 @@ def open_driver_save_cookie():
     pixiv_login_page = 'https://accounts.pixiv.net/login?lang=zh&source=pc&view_type=page&ref=wwwtop_accounts_index'
     discover_page = 'https://www.pixiv.net/discovery'
 
-    driver = None
     print(f'setting browser: {config.get_browser()}')
-    if config.get_browser() == 'chrome':
-        if os.path.exists(config.chromedriver_exe_path):
-            print('加载谷歌驱动')
-            driver = webdriver.Chrome()
-        else:
-            print('缺少谷歌驱动')
-    elif config.get_browser() == 'firefox':
-        if os.path.exists(config.geckodriver_exe_path):
-            print('加载火狐驱动')
-            driver = webdriver.Firefox(executable_path=config.geckodriver_exe_path)
-        else:
-            print('缺少火狐驱动')
+    driver = custom_driver.get_custom_driver(config.get_browser())
 
     print(type(driver))
     # 打开登录页面
     driver.get(pixiv_login_page)
 
-    #
-    WebDriverWait(driver=driver, timeout=10000).until(
+    #到登录界面加载完成
+    WebDriverWait(driver=driver, timeout=99999).until(
         expected_conditions.title_is('pixiv'))
 
     # 跳转到发现页面
-    driver.get(discover_page)
+    # driver.get(discover_page)
 
-    #WebDriverWait(driver=driver, timeout=10000).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, '_2RNjBox')))
-    WebDriverWait(driver=driver, timeout=10000).until(
-        expected_conditions.title_is('pixiv'))
+    # WebDriverWait(driver=driver, timeout=10000).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, '_2RNjBox')))
+    # WebDriverWait(driver=driver, timeout=10000).until(
+    #     expected_conditions.title_is('pixiv'))
 
     # 获得cookie并打印
     cookies = driver.get_cookies()
@@ -75,7 +65,7 @@ def open_driver_save_cookie():
     # 关闭浏览器
     driver.quit()
 
-    # 保存cookie
+    # 保存cookie TODO:cookie不删除重写保存
     save_str_data(path=config.cookie_path, json_str=json.dumps(cookies))
 
 
@@ -86,12 +76,13 @@ def get_head_with_cookie():
         'referer': 'https://www.pixiv.net/discovery'
     }
 
-    # 添加客制化cookie
+    
     cookiejson = get_json_data(config.cookie_path)
     # 如果没有值的花就直接来个新的
     if type(cookiejson) != list:
         cookiejson = []
 
+    # 添加客制化cookie
     for name in config.custom_cookie.keys():
         tempdict = {}
         tempdict['name'] = name
@@ -116,30 +107,33 @@ def get_head_with_cookie():
     return head
 
 
+def build_custom_opener() -> request.OpenerDirector:
+    if config.get_is_proxies():
+        # 代理
+        proxies = config.get_proxies_dict()
+        prox = request.ProxyHandler(proxies=proxies)
+        # opener
+        opener = request.build_opener(prox)
+        return opener
+    else:
+        opener = request.build_opener()
+        return opener
+
+
 def dicovery_json(head):
-
-    str_param = {
-        'type': 'illust',
-        'sample_illusts': 'auto',
-        'num_recommendations': '1000',
-        'page': 'discovery',
-        'mode': 'all'
-    }
-
-    para_str = urlencode(str_param)
-
+    #更改header
     head['referer'] = 'https://www.pixiv.net/discovery'
 
-    # 代理
-    proxies = {'http': 'http://127.0.0.1:1080',
-               'https': 'https://127.0.0.1:1080'}
-    prox = request.ProxyHandler(proxies=proxies)
+    #获得查询字符串
+    qd = config.get_discovery_query_dict()
+    query_string = urlencode(qd)
 
-    # opener
-    opener = request.build_opener(prox)
-
+    opener = build_custom_opener()
+    
     # request
-    requ = request.Request(pixiv_discovery_api2, headers=head, method='GET')
+    url = pixiv_discovery_api2 + '?' + query_string
+    print(url)
+    requ = request.Request(url, headers=head, method='GET')
 
     # open
     resp = opener.open(requ)
@@ -152,14 +146,8 @@ def dicovery_json(head):
 
 
 def download_idlist(id_list: list, head):
-    # 代理
-    proxies = {
-        'http': 'http://127.0.0.1:1080',
-        'https': 'https://127.0.0.1:1080'
-    }
-    prox = request.ProxyHandler(proxies=proxies)
-    # opener
-    opener = request.build_opener(prox)
+
+    opener = build_custom_opener()
 
     for id in id_list:
         download_id(pid=id, head=head, opener=opener)
@@ -168,13 +156,7 @@ def download_idlist(id_list: list, head):
 def download_id(pid, head, opener=None):
     # 如果没有传入opener 就要自己造一个
     if opener == None:
-        # 代理
-        proxies = {'http': 'http://127.0.0.1:1080',
-                   'https': 'https://127.0.0.1:1080'}
-        prox = request.ProxyHandler(proxies=proxies)
-
-        # opener
-        opener = request.build_opener(prox)
+        opener = build_custom_opener()
 
     info_url = f'https://www.pixiv.net/artworks/{pid}'
     # 抓图片源url 回应图片源json
@@ -224,7 +206,7 @@ def download_id(pid, head, opener=None):
         # 生成文件名
         filename = f'{pid}_{tu_title}_p{i}{suffix}'
         print(f'准备下载{filename}')
-        if os.path.exists(config.tutu_dir_path+filename):
+        if os.path.exists(config.get_ads_download_path()+filename):
             print(f'文件{filename}已经下载过了', end='')
 
             is_cover = config.get_is_cover()
@@ -240,7 +222,7 @@ def download_id(pid, head, opener=None):
             ortu_resp = opener.open(request.Request(
                 url=tu_url, headers=head, method='GET'))
             # 保存
-            with open(config.tutu_dir_path + filename, 'wb') as file:
+            with open(config.get_ads_download_path() + filename, 'wb') as file:
                 file.write(ortu_resp.read())
             print(f'from {tu_url} 下载 {filename} 成功')
         except Exception as e:
@@ -259,14 +241,26 @@ def parsing_tutu_data2(jsondata):
 
 
 def tips():
-    print(f'当前cookie_path:{config.cookie_path}')
-    print(f'当前发现画廊数据path:{config.tutu_data_path}')
-    print(f'当前图图保存位置{config.tutu_dir_path}')
+    print('='*30,'Tips','='*30)
+    print('当前设置:')
+    print(f'图片质量image_quality : {config.get_image_quality()}')
+    print(f'是否覆盖is_cover : {config.get_is_cover()}')
+    print(f'浏览器browser : {config.get_browser()}')
+    print(f'是否强制登录forcelogin : {config.get_forcelogin()}')
+    print(f'下载保存路径download_path : {config.get_ads_download_path()}')
+    print(f'代理 is_proxies : {config.get_is_proxies()}')
+    print(config.get_proxies_dict())
+    print(f'api查询字符串参数：\n{config.get_discovery_query_dict()}')
+    print(f'cookie_path:{config.cookie_path}')
+    print(f'discovery返回数据path:{config.ajax_discovery_data_path}')
     print(f'需要谷歌驱动位置:{config.chromedriver_exe_path}')
     print(f'需要火狐驱动位置:{config.geckodriver_exe_path}')
+    print('='*60)
 
 
 def force_login():
+    forcelogin = config.get_forcelogin()
+    print(f'强制登录forcelogin: {forcelogin}')
     if not config.get_forcelogin():
         return
     
@@ -278,19 +272,21 @@ def until_linkup():
     while True:
         try:
             print('尝试连接pixiv获取数据')
+            print('加载header')
             head = get_head_with_cookie()
+            print('连接 pixiv')
             discoveryjson = dicovery_json(head=head)
-            # 保存数据
-            with open(config.tutu_data_path, 'w') as file:
-                file.write(json.dumps(discoveryjson))
             break
         except Exception as e:
             print('连接失败,更新cookie', e)
             try:
                 open_driver_save_cookie()
             except Exception as e:
-                input('错误（回车继续）',e)
-
+                input('selenium 出现问题(大概率是因为浏览器也连不上)：',e)
+                return
+    
+    # 保存数据
+    save_str_data(config.ajax_discovery_data_path ,json.dumps(discoveryjson, ensure_ascii=False))
     return discoveryjson
 
 
@@ -298,21 +294,24 @@ def until_linkup():
 if __name__ == '__main__':
     tips()
 
+    # 是否强制执行登录
     force_login()
 
+    #直到连接上pixiv 并返回json推荐数据
     discoveryjson = until_linkup()
+    if dicovery_json == None:
+        input('没有获取到数据 结束进程')
+        sys.exit(1)
 
-    # 开始解析数据
-    # 本地数据
-    # tutu_data = get_json_data(config.tutu_data_path)
+    #开始解析数据
     # 获得id列表
     id_list = parsing_tutu_data2(discoveryjson)
-    print(f'一共{len(id_list)}张图图')
+    print(f'pixiv 根据xp推荐 返回了{len(id_list)}个pid ：')
     print(id_list)
-    head = get_head_with_cookie()
-    print(head)
 
-    #下载list中的所有pidhua
-    download_idlist(id_list=id_list, head=head)
+    # #下载list中的所有pidhua
+    # print('='*30,'开始下载','='*30)
+    # head = get_head_with_cookie()
+    # download_idlist(id_list=id_list, head=head)
 
     input('done')
