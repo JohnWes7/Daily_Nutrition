@@ -42,12 +42,11 @@ class config:
     # 直接通过属性名调用 不可更改
     # 文件路径
     cookie_path = os.path.dirname(__file__) + '/data/cookies.json'
-    ajax_discovery_data_path = os.path.dirname(
-        __file__) + '/data/wwwpixivnet_ajax_discovery_artworks.json'
+    ajax_discovery_data_path = os.path.dirname(__file__) + '/data/wwwpixivnet_ajax_discovery_artworks.json'
+    download_record_path = os.path.dirname(__file__) + '/data/downloadrecord.json'
     # 驱动位置
     chromedriver_exe_path = os.path.dirname(__file__) + '/chromedriver.exe'
     geckodriver_exe_path = os.path.dirname(__file__) + '/geckodriver.exe'
-
     # 文件夹路径
     data_dir = datadir
 
