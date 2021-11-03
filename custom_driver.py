@@ -1,3 +1,7 @@
+'''
+@author : johnwest
+@github : https://github.com/JohnWes7/Daily_Nutrition
+'''
 from selenium.webdriver.remote.webdriver import WebDriver
 from config import config
 from selenium import webdriver
@@ -13,6 +17,7 @@ def options_desired_capabilities_chrome(is_proxy, is_getlog):
     od_dict = {}
     caps = None
     opt = webdriver.ChromeOptions()
+    opt.add_experimental_option('excludeSwitches', ['enable-automation']) # 禁用浏览器正在被自动化程序控制的提示
 
     # 是否打开代理
     if is_proxy:
@@ -60,7 +65,7 @@ def options_desired_capabilities_firefox(is_proxy, is_getlog):
 
     return od_dict
 
-def get_custom_options_desired_capabilities(name: str, is_proxy=False, is_getlog=False):
+def get_custom_options_desired_capabilities(name: str, is_proxy=False, is_getlog=False) -> dict:
     '''
     返回配置字典\n
     'desired_capabilities' : desired_capabilities\n

@@ -1,3 +1,8 @@
+'''
+@author : johnwest
+@github : https://github.com/JohnWes7/Daily_Nutrition
+'''
+
 import os
 import random
 import cv2

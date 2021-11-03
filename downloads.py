@@ -1,6 +1,6 @@
 '''
 @author : johnwest
-@github : 
+@github : https://github.com/JohnWes7/Daily_Nutrition
 '''
 from types import FunctionType
 from typing import Any
@@ -76,7 +76,7 @@ def open_driver_save_cookie():
 
     print(f'setting browser: {config.get_browser()}')
     # 根据设置获得浏览器 options
-    od_dict = custom_driver.get_custom_options_desired_capabilities(config.get_browser(),is_proxy=True)
+    od_dict = custom_driver.get_custom_options_desired_capabilities(config.get_browser(),is_proxy=config.get_is_proxies())
     driver = custom_driver.get_custom_driver(config.get_browser(),options=od_dict.get('options'))
 
     print(type(driver))
