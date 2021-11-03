@@ -4,31 +4,101 @@ from selenium import webdriver
 import os
 
 
-def custom_chrome() -> WebDriver:
+def options_desired_capabilities_chrome(is_proxy, is_getlog):
+    '''
+    返回配置字典\n
+    'desired_capabilities' : desired_capabilities\n
+    'options' : options\n
+    '''
+    od_dict = {}
+    caps = None
+    opt = webdriver.ChromeOptions()
+
+    # 是否打开代理
+    if is_proxy:
+        opt.add_argument(
+            f"--proxy-server={config.get_proxies_dict().get('http')}")
+
+    # 是否需要log
+    if is_getlog:
+        opt.add_experimental_option('w3c', False)  # 把这个禁用了才能调取所有 log 魔法 必须加
+        opt.add_experimental_option('perfLoggingPrefs', {  # log筛选
+            'enableNetwork': True,
+            'enablePage': False,
+            'traceCategories': 'devtools'  # log 的筛选只跟踪这里面的值 魔法 试出来的 不知道还可以填什么
+        })
+        caps = {
+            'browserName': 'chrome',
+            'loggingPrefs': {
+                'performance': 'ALL',
+                'browser': 'ALL',
+            }
+        }
+
+    od_dict['desired_capabilities'] = caps
+    od_dict['options'] = opt
+
+    return od_dict
+
+
+def options_desired_capabilities_firefox(is_proxy, is_getlog):
+    '''
+    未完工
+    '''
+    od_dict = {}
+    caps = None
+    opt = webdriver.FirefoxOptions()
+
+    if is_proxy:
+        pass
+
+    if is_getlog:
+        pass
+
+    od_dict['desired_capabilities'] = caps
+    od_dict['options'] = opt
+
+    return od_dict
+
+def get_custom_options_desired_capabilities(name: str, is_proxy=False, is_getlog=False):
+    '''
+    返回配置字典\n
+    'desired_capabilities' : desired_capabilities\n
+    'options' : options\n
+    '''
+    name_od_func = {
+        'chrome': options_desired_capabilities_chrome,
+        'firefox': options_desired_capabilities_firefox
+    }
+
+    return name_od_func.get(name)(is_proxy,is_getlog)
+
+
+def custom_chrome(options=None, desired_capabilities=None) -> WebDriver:
     if os.path.exists(config.chromedriver_exe_path):
         print('加载谷歌驱动')
-        driver = webdriver.Chrome()
+        driver = webdriver.Chrome(
+            options=options, desired_capabilities=desired_capabilities)
         return driver
 
     print('缺少谷歌驱动')
-    
 
 
-def custom_firefox() -> WebDriver:
+def custom_firefox(options=None, desired_capabilities=None) -> WebDriver:
     if os.path.exists(config.geckodriver_exe_path):
         print('加载火狐驱动')
-        driver = webdriver.Firefox(executable_path=config.geckodriver_exe_path)
+        driver = webdriver.Firefox(executable_path=config.geckodriver_exe_path,
+                                   options=options, desired_capabilities=desired_capabilities)
         return driver
 
     print('缺少火狐驱动')
-    
 
 
-def get_custom_driver(name) -> WebDriver:
+def get_custom_driver(name: str, options=None, desired_capabilities=None) -> WebDriver:
     name_driver_func = {
         'chrome': custom_chrome,
         'firefox': custom_firefox
     }
 
-    driver = name_driver_func.get(name)()
+    driver = name_driver_func.get(name)(options, desired_capabilities)
     return driver

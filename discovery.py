@@ -1,7 +1,7 @@
 import json
 from os import name
 from selenium import webdriver
-from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.firefox.options import Options as fire_fox_Optin
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import wait
@@ -33,7 +33,7 @@ def open_discovery():
     c_option = Options()
 
     c_option.add_experimental_option('w3c', False)  # 把这个禁用了才能调取所有 log 魔法 必须加
-    c_option.add_experimental_option('perfLoggingPrefs', {  # 按理说是
+    c_option.add_experimental_option('perfLoggingPrefs', {  # log筛选
         'enableNetwork': True,
         'enablePage': False,
         'traceCategories': 'devtools'  # log 的筛选只跟踪这里面的值 魔法 试出来的 不知道还可以填什么
@@ -75,30 +75,8 @@ def open_discovery():
 
 
 if __name__ == '__main__':
-    # open_discovery()
-    # 浏览器设置
-    c_option = Options()
-    c_option.add_experimental_option('w3c', False)  # 把这个禁用了才能调取所有 log 魔法 必须加
-    c_option.add_experimental_option('perfLoggingPrefs', {  # 按理说是
-        'enableNetwork': True,
-        'enablePage': False,
-        'traceCategories': 'devtools'  # log 的筛选只跟踪这里面的值 魔法 试出来的 不知道还可以填什么
-    })
-    caps = {
-        'browserName': 'chrome',
-        'loggingPrefs': {
-            'performance': 'ALL',
-            'browser': 'ALL',
-        }
-    }
-    driver = webdriver.Chrome(options=c_option, desired_capabilities=caps)
-    driver.get('https://www.baidu.com')
-
-    title_xpth = '//title'
-    title = driver.title
-    print(type(title),title)
+    open_discovery()
     
-    print(type(title),title)
 
 
 

@@ -25,7 +25,8 @@ default_setting = {
     },
     'mode' : 'save',
     'limit' : 60,
-    'lang' : 'zh'
+    'lang' : 'zh',
+    'skip_recorded' : True
 }
 
 # section名称
@@ -145,3 +146,7 @@ class config:
         
         return qd
 
+    @staticmethod
+    def get_skip_recorded():
+        skip_recorded = conf.getboolean(ads, 'skip_recorded', fallback=default_setting.get('skip_recorded'))
+        return skip_recorded

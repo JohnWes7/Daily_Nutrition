@@ -75,7 +75,9 @@ def open_driver_save_cookie():
     discover_page = 'https://www.pixiv.net/discovery'
 
     print(f'setting browser: {config.get_browser()}')
-    driver = custom_driver.get_custom_driver(config.get_browser())
+    # 根据设置获得浏览器 options
+    od_dict = custom_driver.get_custom_options_desired_capabilities(config.get_browser(),is_proxy=True)
+    driver = custom_driver.get_custom_driver(config.get_browser(),options=od_dict.get('options'))
 
     print(type(driver))
     # 打开登录页面
@@ -335,6 +337,7 @@ def tips():
     print(f'代理 is_proxies : {config.get_is_proxies()}')
     print(config.get_proxies_dict())
     print(f'api查询字符串参数：\n{config.get_discovery_query_dict()}')
+    print(f'是否跳过记录中的pid skip_recorded : {config.get_skip_recorded()}')
     print(f'cookie_path:{config.cookie_path}')
     print(f'discovery返回数据path:{config.ajax_discovery_data_path}')
     print(f'需要谷歌驱动位置:{config.chromedriver_exe_path}')
@@ -423,20 +426,21 @@ if __name__ == '__main__':
     id_dict = contrast_with_localrecord(id_list)
     print('其中有', len(id_dict.get('recorded')),'个id已经下载过 : \n', id_dict.get('recorded'))
     print('剩余', len(id_dict.get('unrecord')),'个 : \n', id_dict.get('unrecord'))
+    need_d = (id_dict.get('unrecord') if config.get_skip_recorded() else id_list).copy()
+    print(f'skip: {config.get_skip_recorded()} 需要下载{len(need_d)}\n',need_d)
     input('回车确认开始下载')
 
     # 下载list中的所有pidhua
-    unrecord = id_dict.get('unrecord').copy()
     print('='*30, '开始下载', '='*30)
     head = get_head_with_cookie()
-    success_list = download_idlist(id_list=unrecord, head=head, callback_delegate=append_record_pid_local)
+    success_list = download_idlist(id_list=need_d, head=head, callback_delegate=append_record_pid_local)
     print(f'下载成功数 ：{len(success_list)}')
     print(success_list)
 
     # 统计失败
     for id in success_list:
-        unrecord.remove(id)
-    print(f'下载失败数{len(unrecord)}')
-    print(unrecord)
+        need_d.remove(id)
+    print(f'下载失败数{len(need_d)}')
+    print(need_d)
 
     input('done')
