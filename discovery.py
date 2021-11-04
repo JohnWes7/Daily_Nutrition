@@ -148,4 +148,4 @@ if __name__ == '__main__':
     d_list = get_pid_list()
     print(f'开始执行下载\n将要执行下载：{len(d_list)}\n',d_list)
     downloads.download_idlist(id_list=d_list,head=downloads.get_head_with_cookie())
-    print('done')
+    input('done')
