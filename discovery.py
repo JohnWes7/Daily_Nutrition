@@ -144,7 +144,10 @@ def get_pid_list():
 
 if __name__ == '__main__':
    
-    open_discovery()
+    try:
+        open_discovery()
+    except Exception as e:
+        print(e)
     downloads.save_str_data(config.bookmarkdata_path,json.dumps(post_list))
 
     d_list = get_pid_list()
