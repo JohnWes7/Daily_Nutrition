@@ -103,6 +103,8 @@ def open_discovery():
     driver.refresh()
     # 等待到主页面
     WebDriverWait(driver=driver, timeout=99999,poll_frequency=1).until(delegate_title_is_pixiv)
+    cookies = driver.get_cookies()
+    downloads.update_local_cookies(cookies)
 
     # 转到发现页面
     try:
