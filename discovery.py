@@ -91,12 +91,14 @@ def open_discovery():
 
     driver.get(config.pixiv)  # 打开网页
     # 加入cookies
-    cookiejson = config.get_local_cookie()
-    for item in cookiejson:
-        try:
-            driver.add_cookie(item)
-        except Exception as e:
-            print('加入cookie时发生: ', e)
+    cookiejson = downloads.get_json_data(config.cookie_path)
+    if type(cookiejson) == list:
+        for item in cookiejson:
+            try:
+                driver.add_cookie(item)
+            except Exception as e:
+                print('加入cookie时发生: ', e)
+
     # 刷新
     driver.refresh()
     # 等待到主页面
@@ -115,6 +117,8 @@ def open_discovery():
     #     message = json.loads(item.get('message'))
     #     item['message'] = message
     # downloads.save_str_data(config.performance_log_path,json.dumps(log))
+    cookies = driver.get_cookies()
+    downloads.update_local_cookies(cookies)
 
     driver.quit()
 

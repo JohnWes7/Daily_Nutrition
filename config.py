@@ -67,7 +67,7 @@ class config:
 
     @staticmethod
     def get_local_cookie():
-        with open(config.cookie_path, 'r') as file:
+        with open(config.cookie_path, 'r', encoding='utf-8') as file:
             data = json.loads(file.read())
 
         return data
