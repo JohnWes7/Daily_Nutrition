@@ -99,6 +99,8 @@ def open_discovery():
             print('加入cookie时发生: ', e)
     # 刷新
     driver.refresh()
+    # 等待到主页面
+    WebDriverWait(driver=driver, timeout=99999,poll_frequency=1).until(delegate_title_is_pixiv)
 
     # 转到发现页面
     try:
@@ -116,13 +118,30 @@ def open_discovery():
 
     driver.quit()
 
-
-if __name__ == '__main__':
+def test():
     bookmark_event_url2 = 'https://event.pixiv-recommend.net/?platform=pc&action=click-bookmark'
     sample1 = "https://event.pixiv-recommend.net/?platform=pc&action=click-bookmark&zone=discovery&method=clustering_bqalgc&illust_id=92834061&seed_illust_ids=90553117%2C93470454%2C93623887%2C93790321&login=yes&user_id=25832134&p_ab_id=2&p_ab_id_2=8&p_ab_d_id=773787977"
     sample2 = 'https://event.pixiv-recommend.net/?platform=pc&action=click-bookmark&zone=discovery&method=clustering_bqalgc&illust_id=91975962&seed_illust_ids=86075831%2C91123048%2C91766083%2C93623887%2C93686296%2C93790321&login=yes&user_id=25832134&p_ab_id=0&p_ab_id_2=2&p_ab_d_id=320056489'
     match = re.match('https://event.pixiv-recommend.net/\?platform=pc&action=click-bookmark.*',sample1)
     print(match.group())
-    # open_discovery()
-    # downloads.save_str_data(config.bookmarkdata_path,json.dumps(post_list))
-    print('开始执行下载')
+
+
+def get_pid_list():
+    d_list = []
+    for item in post_list:
+        id = item.get('illust_id')
+        if not id == None:
+            d_list.append(id)
+    
+    return d_list
+
+
+if __name__ == '__main__':
+   
+    open_discovery()
+    downloads.save_str_data(config.bookmarkdata_path,json.dumps(post_list))
+
+    d_list = get_pid_list()
+    print(f'开始执行下载\n将要执行下载：{len(d_list)}\n',d_list)
+    downloads.download_idlist(id_list=d_list,head=downloads.get_head_with_cookie())
+    print('done')
