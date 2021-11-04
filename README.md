@@ -11,7 +11,7 @@
 ## *手动跳转到pixiv主页面 浏览器自动安全关闭 直接点X退出浏览器会报错
 
 <br/>
-chrome驱动不能使用executable_path 只能扔出来  
+chrome和edge executable_path说是被弃用(但好像测的还能用) 为了保险还是扔出来  
 <br/>
 edge驱动和firefox驱动在driver文件夹内  
 <br/>

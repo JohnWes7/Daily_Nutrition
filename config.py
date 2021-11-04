@@ -15,7 +15,7 @@ if not os.path.exists(defaultutudir):
 default_setting = {
     'image_quality': 'original',    # thumb_mini small regular original 图片质量
     'is_cover': False,              # 是否覆盖
-    'browser': 'chrome',            # firefox
+    'browser': 'edge',              # firefox chrome
     'forcelogin': False,            # 是否强制登录
     'download_path' : defaultutudir,# 下载文件夹
     'is_proxies' : True,            # 是否启用代理
@@ -45,10 +45,12 @@ class config:
     cookie_path = os.path.dirname(__file__) + '/data/cookies.json'
     ajax_discovery_data_path = os.path.dirname(__file__) + '/data/wwwpixivnet_ajax_discovery_artworks.json'
     download_record_path = os.path.dirname(__file__) + '/data/downloadrecord.json'
+    performance_log_path = os.path.dirname(__file__) + '/data/performance.json'
+    bookmarkdata_path = os.path.dirname(__file__) + '/data/bookmarkdata.json'
     # 驱动位置
-    chromedriver_exe_path = os.path.dirname(__file__) + '/driver/chromedriver.exe'
-    geckodriver_exe_path = os.path.dirname(__file__) + '/geckodriver.exe'
-    edgedriver_exe_path = os.path.dirname(__file__) + '/driver/msedgedriver.exe'
+    chromedriver_exe_path = os.path.dirname(__file__) + '/chromedriver.exe'
+    geckodriver_exe_path = os.path.dirname(__file__) + '/driver/geckodriver.exe'
+    edgedriver_exe_path = os.path.dirname(__file__) + '/msedgedriver.exe'
     # 文件夹路径
     data_dir = datadir
 
@@ -89,7 +91,7 @@ class config:
     def get_browser():
         browser = conf.get(
             link, 'browser', fallback=default_setting.get('browser'))
-        if browser.__eq__('chrome') or browser.__eq__('firefox'):
+        if browser.__eq__('chrome') or browser.__eq__('firefox') or browser.__eq__('edge'):
             return browser
 
         return default_setting.get('browser')
