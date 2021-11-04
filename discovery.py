@@ -4,6 +4,7 @@
 '''
 import json
 from selenium import webdriver
+import selenium
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.firefox.options import Options as fire_fox_Optin
 from selenium.webdriver.remote.webelement import WebElement
@@ -16,7 +17,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from config import config
 # from browsermobproxy import Server
 import downloads
-import custom_driver
+from src import custom_driver
 # 93682182
 # 91123048
 # 89584897
@@ -68,7 +69,7 @@ def delegate_title_is_pixiv(x: WebDriver):
             except Exception as e:
                 print(e)
 
-            
+
     print(f'analysis: loglen:{log.__len__()}\tparams_none:{params_none}\trequ_none:{requ_none}\tpost_list:{post_list.__len__()}')
 
     title = x.title
@@ -126,9 +127,11 @@ def open_discovery():
 
 
 if __name__ == '__main__':
-    open_discovery()
+    driver = webdriver.Edge(executable_path=config.edgedriver_exe_path)
+    driver.get('https://www.baidu.com')
+    # open_discovery()
     
-    print('开始执行下载')
+    # print('开始执行下载')
 
 
 

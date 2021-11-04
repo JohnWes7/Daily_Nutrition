@@ -46,13 +46,14 @@ class config:
     ajax_discovery_data_path = os.path.dirname(__file__) + '/data/wwwpixivnet_ajax_discovery_artworks.json'
     download_record_path = os.path.dirname(__file__) + '/data/downloadrecord.json'
     # 驱动位置
-    chromedriver_exe_path = os.path.dirname(__file__) + '/chromedriver.exe'
+    chromedriver_exe_path = os.path.dirname(__file__) + '/driver/chromedriver.exe'
     geckodriver_exe_path = os.path.dirname(__file__) + '/geckodriver.exe'
+    edgedriver_exe_path = os.path.dirname(__file__) + '/driver/msedgedriver.exe'
     # 文件夹路径
     data_dir = datadir
 
 
-    #自定义cookie
+    #自定义cookie 现在只能在代码这里加入
     custom_cookie = {
 
     }

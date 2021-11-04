@@ -16,7 +16,7 @@ from config import config
 import json
 import os
 import sys
-import custom_driver
+from src import custom_driver
 
 
 pixiv_discovery_api1 = 'https://www.pixiv.net/rpc/recommender.php?type=illust&sample_illusts=auto&num_recommendations=60&page=discovery&mode=all'
@@ -168,7 +168,6 @@ def dicovery_json(head):
     url = pixiv_discovery_api2 + '?' + query_string
     print(url)
     requ = request.Request(url, headers=head, method='GET')
-
     # open
     resp = opener.open(requ)
     print('pixiv: ', resp.getcode())
