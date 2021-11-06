@@ -7,10 +7,8 @@ from typing import Any
 from urllib import request
 from urllib.parse import urlencode
 from selenium import webdriver
-from selenium.webdriver.support import wait
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.common.by import By
 from lxml import etree
 from config import config
 import json
@@ -41,6 +39,9 @@ def update_cookies(oldcookies: list, newcookies: list) -> list:
     '''
     更新cookie 返回用新cookie更新后的cookie数据
     '''
+    if newcookies == None:
+        return
+
     oldcopy = oldcookies.copy()
     add = []
     for new in newcookies:
@@ -204,12 +205,14 @@ def download_idlist(id_list: list, head, callback_delegate:FunctionType = None):
     opener = build_custom_opener()
 
     success_list = []
-    for id in id_list:
+    for i,id in enumerate(id_list):
+        print(f'list[{i}]: ',end='')
         is_success = download_id(
             pid=id, head=head, opener=opener, image_quality=config.get_image_quality(), callback_delegate=callback_delegate)
         if is_success:
             success_list.append(id)
 
+    opener.close()
     return success_list
 
 
@@ -221,11 +224,12 @@ def download_id(pid, head, image_quality: str = 'original', opener=None,callback
     用提供的 head 和opener下载 pid中的所有画
     如果没有opener则用build_custom_opener()生成一个新的
     '''
-
+    
     # 如果没有传入opener 就要自己造一个
     if opener == None:
         opener = build_custom_opener()
 
+    print('='*30,f'执行下载{pid}','='*30)
     info_url = f'https://www.pixiv.net/artworks/{pid}'
     # 抓图片源url 回应图片源json
     src_url = f'https://www.pixiv.net/ajax/illust/{pid}/pages?lang=zh'
@@ -237,12 +241,20 @@ def download_id(pid, head, image_quality: str = 'original', opener=None,callback
     requ_info = request.Request(url=info_url, headers=head, method='GET')
     # 开始获取
     info_resp = None
-    try:
-        print(f'正在获取图片信息from: {info_url}')
-        info_resp = opener.open(requ_info)
-    except Exception as e:
-        print(f'{info_url}获取抓取图片信息失败', e)
-        return False
+    i = 0
+    while i < config.get_retry():
+        try:
+            print(f'times:{i} 获取图片信息from: {info_url}')
+            info_resp = opener.open(requ_info)
+            break
+        except Exception as e:
+            print(f'times:{i} {info_url}获取抓取图片信息失败', e)
+            if(i == config.get_retry() - 1):
+                if type(callback_delegate) == FunctionType:
+                    callback_delegate(pid,False)
+                return False
+        i+=1
+    
     html_str = info_resp.read().decode()
     e = etree.HTML(html_str)
     # 拿到有信息的 description
@@ -251,12 +263,19 @@ def download_id(pid, head, image_quality: str = 'original', opener=None,callback
     # 抓取图片源
     requ = request.Request(url=src_url, headers=head, method='GET')
     src_resp = None
-    try:
-        print(f'正在获取图片下载源from: {src_url}')
-        src_resp = opener.open(requ)
-    except Exception as e:
-        print(f'{src_url}获取图片源失败', e)
-        return False
+    i = 0
+    while i < config.get_retry():
+        try:
+            print(f'times:{i} 正在获取图片下载源from: {src_url}')
+            src_resp = opener.open(requ)
+            break
+        except Exception as e:
+            print(f'times:{i} {src_url}获取图片源失败', e)
+            if(i == config.get_retry() - 1):
+                if type(callback_delegate) == FunctionType:
+                    callback_delegate(pid,False)
+                return False
+        i+=1
     re_byte = src_resp.read()
     re_str = re_byte.decode('utf-8')
     temp_data = json.loads(re_str)  # 获得装有图片源的json数据
@@ -275,6 +294,8 @@ def download_id(pid, head, image_quality: str = 'original', opener=None,callback
         # 生成文件名
         filename = f'{pid}_{tu_title}_p{i}{suffix}'
         print(f'准备下载{filename}')
+
+        #判断文件覆盖
         if os.path.exists(config.get_ads_download_path()+filename):
             print(f'文件{filename}已经下载过了', end='')
 
@@ -288,25 +309,28 @@ def download_id(pid, head, image_quality: str = 'original', opener=None,callback
                 continue
 
         # 下载
-        try:
-            ortu_resp = opener.open(request.Request(
-                url=tu_url, headers=head, method='GET'))
-            # 保存
-            with open(config.get_ads_download_path() + filename, 'wb') as file:
-                file.write(ortu_resp.read())
-            print(f'from {tu_url} 下载 {filename} 成功')
-            is_successful.append(True)
-        except Exception as e:
-            print(f'from {tu_url} 下载 {filename} 失败', e)
-            is_successful.append(False)
-            continue
+        while i < config.get_retry():
+            try:
+                ortu_resp = opener.open(request.Request(url=tu_url, headers=head, method='GET'))
+                # 保存
+                with open(config.get_ads_download_path() + filename, 'wb') as file:
+                    file.write(ortu_resp.read())
+                print(f'times:{i} from {tu_url} 下载 {filename} 成功')
+                is_successful.append(True)
+                break
+            except Exception as e:
+                print(f'times:{i} from {tu_url} 下载 {filename} 失败', e)
+                if(i == config.get_retry() - 1):
+                    is_successful.append(False)
+                    break
+            i+=1
 
+    #ans 本次下载是否成功
     ans = True
     for condition in is_successful:
         ans = ans and condition
     
-    if type(callback_delegate) == FunctionType:
-        callback_delegate(pid,ans)
+    if type(callback_delegate) == FunctionType:callback_delegate(pid,ans)
 
     return ans
 

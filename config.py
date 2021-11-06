@@ -26,7 +26,8 @@ default_setting = {
     'mode' : 'save',
     'limit' : 60,
     'lang' : 'zh',
-    'skip_recorded' : True
+    'skip_recorded' : True,
+    'retry' : 3
 }
 
 # section名称
@@ -153,3 +154,12 @@ class config:
     def get_skip_recorded():
         skip_recorded = conf.getboolean(ads, 'skip_recorded', fallback=default_setting.get('skip_recorded'))
         return skip_recorded
+    
+    @staticmethod
+    def get_retry():
+        retry = conf.getint(ads,'retry', fallback=default_setting.get('retry'))
+        return retry
+
+
+if __name__ == '__main__':
+    print(config.get_retry())
