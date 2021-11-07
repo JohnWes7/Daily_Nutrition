@@ -290,14 +290,14 @@ def download_id(pid, head, image_quality: str = 'original', opener=None,callback
     # 遍历获得的json图片源数据
     body = temp_data.get('body')
     # 下载每一个数据源
-    for i, item in enumerate(body):
+    for p, item in enumerate(body):
         # 获得下载链接
         tu_url = item.get('urls').get(image_quality)  # 从config 获取想要的图片质量
         suffix = os.path.splitext(tu_url)[1]
         head['referer'] = 'https://www.pixiv.net/'
 
         # 生成文件名
-        filename = f'{pid}_{tu_title}_p{i}{suffix}'
+        filename = f'{pid}_{tu_title}_p{p}{suffix}'
         filename = filename.replace('/','|')
         filename = filename.replace('\\','|')
         print(f'准备下载{filename}')
@@ -314,23 +314,25 @@ def download_id(pid, head, image_quality: str = 'original', opener=None,callback
                 print(f'跳过_is_cover: {is_cover}')
                 is_successful.append(True)
                 continue
-
+        
         # 下载
-        while i < config.get_retry():
+        trycount = 0
+        while trycount < config.get_retry():
             try:
                 ortu_resp = opener.open(request.Request(url=tu_url, headers=head, method='GET'))
+                print('wb:',ortu_resp.getcode())
                 # 保存
                 with open(config.get_ads_download_path() + filename, 'wb') as file:
                     file.write(ortu_resp.read())
-                print(f'times:{i} from {tu_url} 下载 {filename} 成功')
+                print(f'times:{trycount} from {tu_url} 下载 {filename} 成功')
                 is_successful.append(True)
                 break
             except Exception as e:
-                print(f'times:{i} from {tu_url} 下载 {filename} 失败', e)
-                if(i == config.get_retry() - 1):
+                print(f'times:{trycount} from {tu_url} 下载 {filename} 失败', e)
+                if(trycount == config.get_retry() - 1):
                     is_successful.append(False)
                     break
-            i+=1
+            trycount+=1
 
     #ans 本次下载是否成功
     ans = True
