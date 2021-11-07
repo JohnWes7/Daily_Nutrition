@@ -146,7 +146,7 @@ def custom_firefox(options=None, desired_capabilities=None) -> WebDriver:
 def custom_edge(options=None, desired_capabilities=None):
     if os.path.exists(config.chromedriver_exe_path):
         print('加载edge驱动')
-        driver = webdriver.Edge(options=options, capabilities=desired_capabilities)
+        driver = webdriver.Edge(executable_path=config.edgedriver_exe_path, options=options, capabilities=desired_capabilities)
         return driver
 
     print('缺少edge驱动', config.edgedriver_exe_path)

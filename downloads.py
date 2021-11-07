@@ -401,7 +401,7 @@ def until_linkup():
             try:
                 open_driver_save_cookie()
             except Exception as e:
-                input(f'selenium 出现问题(大概率是因为浏览器也连不上)：{e}')
+                input(f'selenium 出现问题(大概率是因为浏览器也连不上) 请检查Config.ini 中的代理设置以及驱动版本：{e}')
                 return
 
     # 保存数据
