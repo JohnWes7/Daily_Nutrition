@@ -8,3 +8,5 @@ module_dict = {
 
 if __name__ == '__main__':
     tool.check_module(module_dict)
+
+    input('done')

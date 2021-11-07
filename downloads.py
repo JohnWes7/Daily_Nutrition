@@ -298,6 +298,8 @@ def download_id(pid, head, image_quality: str = 'original', opener=None,callback
 
         # 生成文件名
         filename = f'{pid}_{tu_title}_p{i}{suffix}'
+        filename = filename.replace('/','|')
+        filename = filename.replace('\\','|')
         print(f'准备下载{filename}')
 
         #判断文件覆盖
@@ -431,7 +433,6 @@ def contrast_with_localrecord(id_list: list):
         'recorded': recorded
     }
     return id_dict
-
 
 
 if __name__ == '__main__':
