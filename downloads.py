@@ -300,6 +300,7 @@ def download_id(pid, head, image_quality: str = 'original', opener=None,callback
         filename = f'{pid}_{tu_title}_p{p}{suffix}'
         filename = filename.replace('/','|')
         filename = filename.replace('\\','|')
+        filename = filename.replace('\'','')
         print(f'准备下载{filename}')
 
         #判断文件覆盖
