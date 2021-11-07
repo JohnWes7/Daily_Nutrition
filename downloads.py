@@ -207,10 +207,15 @@ def download_idlist(id_list: list, head, callback_delegate:FunctionType = None):
     success_list = []
     for i,id in enumerate(id_list):
         print(f'list[{i}]: ',end='')
-        is_success = download_id(
-            pid=id, head=head, opener=opener, image_quality=config.get_image_quality(), callback_delegate=callback_delegate)
+        try:
+            is_success = download_id(
+                pid=id, head=head, opener=opener, image_quality=config.get_image_quality(), callback_delegate=callback_delegate)
+        except Exception as e:
+            print(e)
         if is_success:
             success_list.append(id)
+        
+        print()
 
     opener.close()
     return success_list
