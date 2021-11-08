@@ -26,8 +26,10 @@ if __name__ == '__main__':
                 input('更新完毕')
             except Exception as e:
                 input(e)
+            break
         elif ans.__eq__('n'):
             break
         else:
+            print('输入错误')
             continue
     
