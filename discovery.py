@@ -118,18 +118,19 @@ def open_discovery():
     cookies = driver.get_cookies()
     downloads.update_local_cookies(cookies)
 
-    # 转到发现页面
+    
     try:
+        # 转到发现页面
         driver.get(config.discover_page)
         # 等待从发现页面出来然后关闭
         WebDriverWait(driver=driver, timeout=99999,
                       poll_frequency=1).until(delegate_title_is_pixiv)
+        print('更新本地cookie')
+        cookies = driver.get_cookies()
+        downloads.update_local_cookies(cookies)
     except Exception as e:
         print(e)
-
-    print('更新本地cookie')
-    cookies = driver.get_cookies()
-    downloads.update_local_cookies(cookies)
+    
 
     driver.quit()
 

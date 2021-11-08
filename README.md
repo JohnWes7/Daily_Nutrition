@@ -21,7 +21,7 @@
 >&nbsp;
 >>## 2. 冲-收藏-下载-器 运行 discovery文件
 >>#### 相当于本次进行了收藏的项目
->> 运行 discovery 可直接跳转到 [pixiv发现](https://www.pixiv.net/discovery) 页面 如果本地有cookie可以不用再登录自动跳转到[pixiv发现](https://www.pixiv.net/discovery)  
+>> 运行 discovery 会跳转到 [pixiv发现](https://www.pixiv.net/discovery) 页面 如果本地有cookie可以不用再登录自动跳转到[pixiv发现](https://www.pixiv.net/discovery)  
 >> 只要没有回到主页面(因为会导致我觉得你好了然后自动关闭) 把涩图都点个爱心加个收藏 ***放开了冲***  
 >> ***冲完了*** 程序会在浏览器关闭的时候自动下载所有 **本次** 用户点过爱心的项目  
 >> *手动跳转到[pixiv主页面](https://www.pixiv.net/) (可以浏览器拉到最上面按左上角的PIXIV图标进行跳转) 届时浏览器则会自动安全关闭  直接点X退出浏览器**是可以的** 但需要等一小会才会自动下  

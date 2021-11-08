@@ -4,14 +4,11 @@ from urllib import request
 dirpath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0,dirpath)
 from config import config
+from bs4 import BeautifulSoup
+from git.repo import Repo
 
 github_api_url ='https://api.github.com/repos/JohnWes7/Daily_Nutrition'
-
-
-module_dict = {
-    'lxml' : 'lxml',
-    'selenium' : 'selenium'
-}
+github_page_url = 'https://github.com/JohnWes7/Daily_Nutrition' 
 
 
 def check_module(module_dict:dict):
@@ -24,7 +21,7 @@ def check_module(module_dict:dict):
                 print(f'导入{key}模块成功')
                 break
             except Exception as e:
-                i+=1
+
                 print(f'导入{key}模组失败,尝试进行安装 尝试次数:{i}')
                 command = f'pip install -i https://pypi.tuna.tsinghua.edu.cn/simple {value}'
                 with os.popen(command,'r') as p:
@@ -38,7 +35,13 @@ def check_module(module_dict:dict):
 
 
 def check_update():
-    request.urlopen()
+    resp = request.urlopen(url=github_page_url)
+    html = resp.read().decode()
+    print(html)
+    soup = BeautifulSoup(html,'html.parser')
+    files = soup.select('div[aria-labelledby="files"] div[role="rowheader"] a')
+    files[0].name
 
 if __name__ == '__main__':
-    check_module(module_dict=module_dict)
+    repo = Repo(os.path.dirname(os.path.dirname(__file__)))
+    input('v 0.55')
