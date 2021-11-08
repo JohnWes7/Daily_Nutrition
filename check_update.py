@@ -21,7 +21,11 @@ if __name__ == '__main__':
     while True:
         ans = input('是否进行github强制覆盖更新(Y/n)')
         if ans.__eq__('Y'):
-            cover_update()
+            try:
+                cover_update()
+                input('更新完毕')
+            except Exception as e:
+                input(e)
         elif ans.__eq__('n'):
             break
         else:
