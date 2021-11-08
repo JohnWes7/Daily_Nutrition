@@ -2,6 +2,9 @@
 @author : johnwest
 @github : https://github.com/JohnWes7/Daily_Nutrition
 '''
+from src import tool
+if __name__=='__main__':
+    tool.check_module()
 import json
 from urllib import request
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -162,7 +165,7 @@ def get_pid_list():
 
 
 if __name__ == '__main__':
-
+    print('main')
     # 浏览数据
     try:
         open_discovery()

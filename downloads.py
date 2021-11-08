@@ -2,6 +2,9 @@
 @author : johnwest
 @github : https://github.com/JohnWes7/Daily_Nutrition
 '''
+from src import tool
+if __name__=='__main__':
+    tool.check_module()
 from types import FunctionType
 from typing import Any
 from urllib import request

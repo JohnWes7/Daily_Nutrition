@@ -1,3 +1,8 @@
+'''
+@author : johnwest
+@github : https://github.com/JohnWes7/Daily_Nutrition
+工具命名空间
+'''
 import os
 import sys
 from urllib import request
@@ -5,13 +10,18 @@ dirpath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0,dirpath)
 from config import config
 from bs4 import BeautifulSoup
-from git.repo import Repo
+
+module_dict = {
+    'lxml' : 'lxml',
+    'selenium' : 'selenium',
+    'git':'gitpython'
+}
 
 github_api_url ='https://api.github.com/repos/JohnWes7/Daily_Nutrition'
 github_page_url = 'https://github.com/JohnWes7/Daily_Nutrition' 
 
 
-def check_module(module_dict:dict):
+def check_module(module_dict:dict=module_dict):
     print('开始检测')
     for key,value in module_dict.items():
         i = 0
@@ -32,16 +42,3 @@ def check_module(module_dict:dict):
                         break
                     else:
                         continue
-
-
-def check_update():
-    resp = request.urlopen(url=github_page_url)
-    html = resp.read().decode()
-    print(html)
-    soup = BeautifulSoup(html,'html.parser')
-    files = soup.select('div[aria-labelledby="files"] div[role="rowheader"] a')
-    files[0].name
-
-if __name__ == '__main__':
-    repo = Repo(os.path.dirname(os.path.dirname(__file__)))
-    input('v 0.557')
