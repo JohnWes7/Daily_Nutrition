@@ -8,6 +8,7 @@ if __name__=='__main__':
 from git.repo import Repo
 import os
 
+
 def cover_update():
     repo = Repo(os.path.dirname(__file__))
     g = repo.git
@@ -15,6 +16,14 @@ def cover_update():
     g.reset('--hard','main')
     g.pull()
 
+
 if __name__ == '__main__':
-    cover_update()
+    while True:
+        ans = input('是否进行github强制覆盖更新(Y/n)')
+        if ans.__eq__('Y'):
+            cover_update()
+        elif ans.__eq__('n'):
+            break
+        else:
+            continue
     
