@@ -44,4 +44,4 @@ def check_update():
 
 if __name__ == '__main__':
     repo = Repo(os.path.dirname(os.path.dirname(__file__)))
-    input('v 0.55')
+    input('v 0.557')
