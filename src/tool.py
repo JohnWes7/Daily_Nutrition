@@ -22,7 +22,7 @@ github_page_url = 'https://github.com/JohnWes7/Daily_Nutrition'
 
 
 def check_module(module_dict:dict=module_dict):
-    print('开始检测')
+    print('开始检测模组')
     for key,value in module_dict.items():
         i = 0
         while i < config.get_retry():
@@ -31,7 +31,7 @@ def check_module(module_dict:dict=module_dict):
                 print(f'导入{key}模块成功')
                 break
             except Exception as e:
-
+                i+=1
                 print(f'导入{key}模组失败,尝试进行安装 尝试次数:{i}')
                 command = f'pip install -i https://pypi.tuna.tsinghua.edu.cn/simple {value}'
                 with os.popen(command,'r') as p:

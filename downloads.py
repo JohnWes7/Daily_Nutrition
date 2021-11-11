@@ -13,6 +13,8 @@ from selenium import webdriver
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from lxml import etree
+from config import path
+from config import url
 from config import config
 import json
 import os
@@ -25,6 +27,11 @@ pixiv_discovery_api2 = 'https://www.pixiv.net/ajax/discovery/artworks'
 
 
 def get_json_data(path: str):
+    '''
+    获得json数据
+    从path中按照utf-8编码读取数据
+    并且自动转成json格式
+    '''
     data = None
     if os.path.exists(path):
         with open(path, 'r', encoding='utf8') as file:
@@ -34,6 +41,9 @@ def get_json_data(path: str):
 
 
 def save_str_data(path: str, json_str: str):
+    '''
+    存储str数据到path路径
+    '''
     with open(path, 'w', encoding='utf8') as file:
         file.write(json_str)
 
@@ -65,17 +75,16 @@ def update_local_cookies(newcookies: list):
     '''
     用新cookie 更新到本地
     '''
-    oldcookie = get_json_data(config.cookie_path)
+    oldcookie = get_json_data(path.get_cookie_path())
     if oldcookie == None:
         # 如果先前没有值直接保存
         oldcookie = newcookies
     else:
         oldcookie = update_cookies(oldcookie, newcookies)
-    save_str_data(config.cookie_path, json_str=json.dumps(oldcookie))
+    save_str_data(path.get_cookie_path(), json_str=json.dumps(oldcookie))
 
 
 def open_driver_save_cookie():
-    pixiv_login_page = 'https://accounts.pixiv.net/login?lang=zh&source=pc&view_type=page&ref=wwwtop_accounts_index'
     discover_page = 'https://www.pixiv.net/discovery'
 
     print(f'setting browser: {config.get_browser()}')
@@ -85,7 +94,7 @@ def open_driver_save_cookie():
 
     print(type(driver))
     # 打开登录页面
-    driver.get(pixiv_login_page)
+    driver.get(url=url.pixiv_login_page)
 
     # 到登录界面加载完成
     WebDriverWait(driver=driver, timeout=99999).until(
@@ -115,7 +124,7 @@ def get_head_with_cookie():
         'referer': 'https://www.pixiv.net/discovery'
     }
 
-    cookiejson = get_json_data(config.cookie_path)
+    cookiejson = get_json_data(path.get_cookie_path())
     # 如果没有值的花就直接来个新的
     if type(cookiejson) != list:
         cookiejson = []
@@ -190,12 +199,12 @@ def append_record_pid_local(pid, is_success):
     if not is_success:
         return
 
-    record = get_json_data(config.download_record_path)
+    record = get_json_data(path=path.get_download_record_path())
     if record == None:
         record = []
     
     record.append(pid)
-    save_str_data(config.download_record_path,json.dumps(record))
+    save_str_data(path.get_download_record_path(),json.dumps(record))
 
 
 def download_idlist(id_list: list, head, callback_delegate:FunctionType = None):
@@ -374,10 +383,11 @@ def tips():
     print(config.get_proxies_dict())
     print(f'api查询字符串参数：\n{config.get_discovery_query_dict()}')
     print(f'是否跳过记录中的pid skip_recorded : {config.get_skip_recorded()}')
-    print(f'cookie_path:{config.cookie_path}')
-    print(f'discovery返回数据path:{config.ajax_discovery_data_path}')
-    print(f'需要谷歌驱动位置:{config.chromedriver_exe_path}')
-    print(f'需要火狐驱动位置:{config.geckodriver_exe_path}')
+    print(f'cookie_path:{path.get_cookie_path()}')
+    print(f'discovery返回数据path:{path.get_ajax_discovery_data_path()}')
+    print(f'需要谷歌驱动位置:{path.get_chromedriver_exe_path()}')
+    print(f'需要火狐驱动位置:{path.get_geckodriver_exe_path()}')
+    print(f'需要Edge驱动位置:{path.get_edgedriver_exe_path()}')
     print('='*60)
 
 
@@ -409,7 +419,7 @@ def until_linkup():
                 return
 
     # 保存数据
-    save_str_data(config.ajax_discovery_data_path,
+    save_str_data(path.get_ajax_discovery_data_path(),
                   json.dumps(discoveryjson, ensure_ascii=False))
     return discoveryjson
 
@@ -421,7 +431,7 @@ def contrast_with_localrecord(id_list: list):
     unrecord：对比之后发现没有被记录的
     recorded：已经被记录过的项
     '''
-    record = get_json_data(config.download_record_path)
+    record = get_json_data(path.get_download_record_path())
     if record == None:
         record = []
 

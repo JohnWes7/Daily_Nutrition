@@ -4,6 +4,7 @@
 '''
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.edge.options import Options as EdgeOptions
+from config import path
 from config import config
 from selenium import webdriver
 import os
@@ -124,32 +125,35 @@ def get_custom_options_desired_capabilities(name: str, is_proxy=False, is_getlog
 
 
 def custom_chrome(options=None, desired_capabilities=None) -> WebDriver:
-    if os.path.exists(config.chromedriver_exe_path):
+    driver_path = path.get_chromedriver_exe_path()
+    if os.path.exists(driver_path):
         print('加载谷歌驱动')
-        driver = webdriver.Chrome(
+        driver = webdriver.Chrome(executable_path=driver_path,
             options=options, desired_capabilities=desired_capabilities)
         return driver
 
-    print('缺少谷歌驱动', config.chromedriver_exe_path)
+    print('缺少谷歌驱动', driver_path)
 
 
 def custom_firefox(options=None, desired_capabilities=None) -> WebDriver:
-    if os.path.exists(config.geckodriver_exe_path):
+    driver_path = path.get_geckodriver_exe_path()
+    if os.path.exists(driver_path):
         print('加载火狐驱动')
-        driver = webdriver.Firefox(executable_path=config.geckodriver_exe_path,
+        driver = webdriver.Firefox(executable_path=driver_path,
                                    options=options, desired_capabilities=desired_capabilities)
         return driver
 
-    print('缺少火狐驱动', config.geckodriver_exe_path)
+    print('缺少火狐驱动', driver_path)
 
 
 def custom_edge(options=None, desired_capabilities=None):
-    if os.path.exists(config.chromedriver_exe_path):
+    driver_path = path.get_edgedriver_exe_path()
+    if os.path.exists(driver_path):
         print('加载edge驱动')
-        driver = webdriver.Edge(executable_path=config.edgedriver_exe_path, options=options, capabilities=desired_capabilities)
+        driver = webdriver.Edge(executable_path=driver_path, options=options, capabilities=desired_capabilities)
         return driver
 
-    print('缺少edge驱动', config.edgedriver_exe_path)
+    print('缺少edge驱动', driver_path)
 
 
 def get_custom_driver(name: str, options=None, desired_capabilities=None) -> WebDriver:

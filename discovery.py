@@ -10,6 +10,8 @@ from urllib import request
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions
+from config import url
+from config import path
 from config import config
 import downloads
 from src import custom_driver
@@ -100,10 +102,10 @@ def open_discovery():
     # driver.maximize_window() # 全屏展开
 
     print('正在等待网页加载')
-    driver.get(config.pixiv)  # 打开网页
+    driver.get(url.get_pixiv())  # 打开网页
     # 加入cookies
     print('加入cookies到浏览器登录')
-    cookiejson = downloads.get_json_data(config.cookie_path)
+    cookiejson = downloads.get_json_data(path.get_cookie_path())
     if type(cookiejson) == list:
         for item in cookiejson:
             try:
@@ -124,7 +126,7 @@ def open_discovery():
     
     try:
         # 转到发现页面
-        driver.get(config.discover_page)
+        driver.get(url.get_discover_page())
         # 等待从发现页面出来然后关闭
         WebDriverWait(driver=driver, timeout=99999,
                       poll_frequency=1).until(delegate_title_is_pixiv)
@@ -165,7 +167,6 @@ def get_pid_list():
 
 
 if __name__ == '__main__':
-    print('main')
     # 浏览数据
     try:
         open_discovery()
@@ -173,7 +174,7 @@ if __name__ == '__main__':
         print(e)
     
     # 保存这次浏览
-    downloads.save_str_data(config.bookmarkdata_path, json.dumps(post_list))
+    downloads.save_str_data(path.get_bookmarkdata_path(), json.dumps(post_list))
 
     d_list = get_pid_list()
     print(f'开始执行下载\n将要执行下载：{len(d_list)}\nlist:', d_list)
