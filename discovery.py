@@ -9,6 +9,7 @@ import json
 from urllib import request
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions
 from config import config
 import downloads
 from src import custom_driver
@@ -115,8 +116,7 @@ def open_discovery():
     driver.refresh()
     # 等待到主页面
     print('等待到主页面进行跳转到发现，cookie登录失败请进行手动登录')
-    WebDriverWait(driver=driver, timeout=99999,
-                  poll_frequency=1).until(delegate_title_is_pixiv)
+    WebDriverWait(driver=driver, timeout=99999).until(expected_conditions.title_is('pixiv'))
     print('更新本地cookie并跳转')
     cookies = driver.get_cookies()
     downloads.update_local_cookies(cookies)
@@ -176,7 +176,7 @@ if __name__ == '__main__':
     downloads.save_str_data(config.bookmarkdata_path, json.dumps(post_list))
 
     d_list = get_pid_list()
-    print(f'开始执行下载\n将要执行下载：{len(d_list)}\n', d_list)
+    print(f'开始执行下载\n将要执行下载：{len(d_list)}\nlist:', d_list)
 
     # 执行下载
     try:

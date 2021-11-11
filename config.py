@@ -58,6 +58,7 @@ class config:
     edgedriver_exe_path = os.path.dirname(__file__) + '/msedgedriver.exe'
     # 文件夹路径
     data_dir = datadir
+    data_temp_dir = data_dir + 'temp/'
 
 
     #自定义cookie 现在只能在代码这里加入
