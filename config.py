@@ -73,7 +73,7 @@ class path:
     @staticmethod
     def getcwd():
         '''获得环境文件夹路径'''
-        return os.path.dirname(__file__)
+        return os.path.dirname(__file__)+'/'
     @staticmethod
     def get_tutu_dir():
         return os.path.dirname(__file__) + '/tutu/'
