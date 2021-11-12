@@ -252,4 +252,4 @@ if __name__ == '__main__':
 
         temp.close()
         local.close()
-            
+        os.remove(item.get('temppath'))
