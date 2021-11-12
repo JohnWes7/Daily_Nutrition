@@ -241,7 +241,9 @@ if __name__ == '__main__':
             print()
             input('按下回车重新尝试下载失败项')
             downloadlist = fail
+    print('='*30,'下载完成','='*30,end='\n\n')
 
+    print('='*30,'开始覆盖','='*30)
     #覆盖部分
     cwd = path.getcwd()
     for item in templ:
@@ -253,5 +255,6 @@ if __name__ == '__main__':
         temp.close()
         local.close()
         os.remove(item.get('temppath'))
+    print()
     
     input('done')
