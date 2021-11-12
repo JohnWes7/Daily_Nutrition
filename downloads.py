@@ -328,6 +328,10 @@ def download_id(pid, head, image_quality: str = 'original', opener=None,callback
                 is_successful.append(True)
                 continue
         
+        #判断下载文件夹路径是否正确
+        if not os.path.exists(config.get_ads_download_path()):
+            os.makedirs(config.get_ads_download_path())
+            
         # 下载
         trycount = 0
         while trycount < config.get_retry():

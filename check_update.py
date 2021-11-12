@@ -13,7 +13,14 @@ from urllib import request
 from git.repo import Repo
 import os
 from config import config
+from config import path
 import downloads
+
+class gitpy:
+    def __init__(self,name:str,) -> None:
+        self.name = name
+        self.href
+        pass
 
 
 def cover_update_with_git():
@@ -88,17 +95,17 @@ def get_all_githubrepo_py(url: str):
 
     filelist = []
     for file in files:
-        path = file.attrs.get('href')
+        href = file.attrs.get('href')
         name = file.attrs.get('title')
-        href = per + path
+        fileurl = per + href
 
         if name.__eq__('Go to parent directory'):
             continue
 
-        elif path.find('tree') >= 0:
+        elif href.find('tree') >= 0:
             print(f'遍历到文件夹 {name}')
             # 遍历子文件夹
-            temp = get_all_githubrepo_py(href)
+            temp = get_all_githubrepo_py(fileurl)
             # 如果子文件夹失败获取失败直接结束程序返回false
             if type(temp) == list:
                 filelist.extend(temp)
@@ -111,14 +118,17 @@ def get_all_githubrepo_py(url: str):
             print(f'遍历到py文件 {name}')
             filedict = {}
             filedict['name'] = name
-            filedict['path'] = path
+            filedict['href'] = href
+            relative = href.split('main/')  # 文件相对路径
+            relative = relative[len(relative)-1]
+            filedict['relative'] = relative
             filedict['temppath'] = None
             filelist.append(filedict)
 
     return filelist
 
 
-def downloadpy(pylist: list[dict], dir:str = config.data_temp_dir):
+def downloadpy(pylist: list[dict], dir:str = path.get_data_temp_dir()):
     '''
     传入要下载的 pylist列表 和 暂存文件夹
     下载全部list里面的py文件
@@ -130,8 +140,8 @@ def downloadpy(pylist: list[dict], dir:str = config.data_temp_dir):
     per = 'https://raw.githubusercontent.com'
     for item in pylist:
         name = item.get('name')
-        path = item.get('path').replace('/blob/', '/')
-        url = per + path
+        href = item.get('href').replace('/blob/', '/')
+        url = per + href
 
         resp = None
         i = 0
@@ -146,8 +156,7 @@ def downloadpy(pylist: list[dict], dir:str = config.data_temp_dir):
 
                 # 如果文件夹不存在创建
                 # path : /JohnWes7/Daily_Nutrition/main/src/__init__.py
-                filepath = path.split('main/')  # 文件路径
-                filepath = dir + filepath[len(filepath)-1]
+                filepath = dir + item.get('relative')
                 dirpath = os.path.dirname(filepath)  # 文件夹路径
 
                 if not os.path.exists(dirpath):
@@ -234,5 +243,13 @@ if __name__ == '__main__':
             downloadlist = fail
 
     #覆盖部分
+    cwd = path.getcwd()
     for item in templ:
-        print(item.get('temppath'))
+        temp = open(item.get('temppath'),'r',encoding='utf-8')
+        temp_data = temp.read()
+        local = open(cwd+item.get('relative'),'w',encoding='utf-8')
+        local.write(temp_data)
+
+        temp.close()
+        local.close()
+            
