@@ -4,7 +4,7 @@
 '''
 from src import tool
 if __name__=='__main__':
-    tool.check_module()
+    tool.check()
 from types import FunctionType
 from typing import Any
 from urllib import request

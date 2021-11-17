@@ -7,10 +7,9 @@
 # 模块检测
 from src import tool
 if __name__ == '__main__':
-    tool.check_module()
+    tool.check()
 from bs4 import BeautifulSoup
 from urllib import request
-from git.repo import Repo
 import os
 from config import config
 from config import path
@@ -35,46 +34,12 @@ class py_info:
     def get_raw_url(self):
         '''获得raw界面的网址'''
         return 'https://raw.githubusercontent.com'+self.href.replace('/blob/', '/')
-    
+
     def get_temppath(self):
         return self.__temppath
 
-    def set_temppath(self,temppath:str):
+    def set_temppath(self, temppath: str):
         self.__temppath = temppath
-
-
-def cover_update_with_git():
-    '''
-    如果文件夹中有git文件可以直接用该方法从github上面克隆覆盖本地仓库\n
-    但因为直接下载zip没有git 所以暂且缓一缓
-    '''
-    try:
-        repo = Repo(os.path.dirname(__file__))
-        repo.remote().pull()
-    except Exception as e:
-        print('发生异常: ', e, '\n尝试强制覆盖')
-        try:
-            g = repo.git
-            g.fetch('--all')
-            g.reset('--hard', 'main')
-            g.pull()
-        except Exception as e:
-            print('强制git发生异常', e)
-    finally:
-        repo.close()
-
-
-def test_git_pull():
-    while True:
-        ans = input('是否进行github强制覆盖更新(Y/n)')
-        if ans.__eq__('Y'):
-            cover_update_with_git()
-            break
-        elif ans.__eq__('n'):
-            break
-        else:
-            print('输入错误')
-            continue
 
 
 def ispy(name: str):
@@ -187,7 +152,6 @@ def downloadpy(pylist: list[py_info], dir: str = path.get_data_temp_dir()) -> li
                     print(f'{name}下载失败')
                     faillist.append(pyinfo.copy())
 
-    
     return faillist
 
 
@@ -204,8 +168,11 @@ def tips(filelist: list[py_info]):
 
 
 def main():
-    opener = downloads.build_custom_opener()
-    request.install_opener(opener=opener)
+    # 单独设置代理
+    ans = input('是否按照Config.ini 设置代理? Y/n')
+    if ans.__eq__('Y'):
+        opener = downloads.build_custom_opener()
+        request.install_opener(opener=opener)
 
     # 连接部分
     filelist = None
@@ -246,34 +213,87 @@ def main():
             downloadlist = fail
     print('='*30, '下载完成', '='*30, end='\n\n')
 
-    print('='*30, '开始覆盖', '='*30)
     # 覆盖部分
+    print('='*30, '开始覆盖', '='*30)
+    replacelist = filelist
     cwd = path.getcwd()
-    for info in filelist:
-        try:
-            name = info.name
-            print(f'覆盖{name}中')
-            temp = open(info.get_temppath(), 'r', encoding='utf-8')
-            temp_data = temp.read()
-            local = open(cwd+info.get_relative(), 'w', encoding='utf-8')
-            local.write(temp_data)
 
-            temp.close()
-            local.close()
-            os.remove(info.get_temppath())
-            print('覆盖成功')
-        except Exception as e:
-            print('错误', e)
+    while True:
+        failr = []
+        for info in replacelist:
+            try:
+                name = info.name
+                print(f'覆盖{name}中')
+                #打开下载的文件
+                temp = open(info.get_temppath(), 'r', encoding='utf-8')
+                temp_data = temp.read()
+                #打开本地需要替换或者新建的位置
+                local = open(cwd+info.get_relative(), 'w', encoding='utf-8')
+                local.write(temp_data)
+
+                temp.close()
+                local.close()
+                os.remove(info.get_temppath())
+                print('写入成功')
+            except Exception as e:
+                failr.append(info)
+                print('错误', e)
+        
+        if len(failr) == 0:
+            print('全部写入成功')
+            break
+        else:
+            print(f'{len(failr)}个写入失败尝试重试')
+            for info in failr:
+                print(info.name,end='')
+            print()
+            replacelist = failr
     print()
 
     input('done')
 
 
 if __name__ == '__main__':
-    # main()
-    opener = downloads.build_custom_opener()
-    resp = opener.open(
-        'https://raw.githubusercontent.com/JohnWes7/Daily_Nutrition/main/discovery.py')
-    print(type(resp))
-    print(resp.getheaders())
+
+    main()
+
+    # opener = downloads.build_custom_opener()
+    # resp = opener.open(
+    #     'https://raw.githubusercontent.com/JohnWes7/Daily_Nutrition/main/discovery.py')
+    # print(type(resp))
+    # print(resp.getheaders())
     # print(resp.read().decode())
+
+
+# def cover_update_with_git():
+#     '''
+#     如果文件夹中有git文件可以直接用该方法从github上面克隆覆盖本地仓库\n
+#     但因为直接下载zip没有git 所以暂且缓一缓
+#     '''
+#     try:
+#         repo = Repo(os.path.dirname(__file__))
+#         repo.remote().pull()
+#     except Exception as e:
+#         print('发生异常: ', e, '\n尝试强制覆盖')
+#         try:
+#             g = repo.git
+#             g.fetch('--all')
+#             g.reset('--hard', 'main')
+#             g.pull()
+#         except Exception as e:
+#             print('强制git发生异常', e)
+#     finally:
+#         repo.close()
+
+
+# def test_git_pull():
+#     while True:
+#         ans = input('是否进行github强制覆盖更新(Y/n)')
+#         if ans.__eq__('Y'):
+#             cover_update_with_git()
+#             break
+#         elif ans.__eq__('n'):
+#             break
+#         else:
+#             print('输入错误')
+#             continue

@@ -41,4 +41,13 @@ def check_module(module_dict:dict=module_dict):
                         print('安装成功')
                         break
                     else:
+                        if i == config.get_retry():
+                            return False
                         continue
+    return True
+
+def check():
+    judge = check_module()
+    if not judge:
+        input('模组检测失败，请手动下载或者检查网络环境重新执行程序')
+        sys.exit(1)

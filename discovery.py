@@ -4,7 +4,7 @@
 '''
 from src import tool
 if __name__=='__main__':
-    tool.check_module()
+    tool.check()
 import json
 from urllib import request
 from selenium.webdriver.remote.webdriver import WebDriver
