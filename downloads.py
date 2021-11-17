@@ -279,6 +279,7 @@ def download_id(pid, head, image_quality: str = 'original', opener=None,callback
 
     # 抓取图片源
     requ = request.Request(url=src_url, headers=head, method='GET')
+    request.urlretrieve
     src_resp = None
     i = 0
     while i < config.get_retry():

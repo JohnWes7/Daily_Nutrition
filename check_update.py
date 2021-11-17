@@ -14,13 +14,33 @@ from git.repo import Repo
 import os
 from config import config
 from config import path
+from http.client import HTTPResponse
 import downloads
 
-class gitpy:
-    def __init__(self,name:str,) -> None:
+
+class py_info:
+    def __init__(self, name: str, href: str) -> None:
         self.name = name
-        self.href
-        pass
+        self.href = href
+        self.__temppath = None
+
+    def get_relative(self):
+        '''
+        获得文件相对路径
+        '''
+        relative = self.href.split('main/')
+        relative = relative[len(relative)-1]
+        return relative
+
+    def get_raw_url(self):
+        '''获得raw界面的网址'''
+        return 'https://raw.githubusercontent.com'+self.href.replace('/blob/', '/')
+    
+    def get_temppath(self):
+        return self.__temppath
+
+    def set_temppath(self,temppath:str):
+        self.__temppath = temppath
 
 
 def cover_update_with_git():
@@ -64,7 +84,7 @@ def ispy(name: str):
     return False
 
 
-def get_all_githubrepo_py(url: str):
+def get_all_githubrepo_py(url: str) -> list[py_info]:
     '''
     返回GitHub仓库中所有的.py文件的字典列表\n
     如果获取失败则返回false
@@ -116,38 +136,30 @@ def get_all_githubrepo_py(url: str):
             # https://raw.githubusercontent.com/JohnWes7/Daily_Nutrition/main/config.py
             # https://github.com/JohnWes7/Daily_Nutrition/blob/main/src/__init__.py
             print(f'遍历到py文件 {name}')
-            filedict = {}
-            filedict['name'] = name
-            filedict['href'] = href
-            relative = href.split('main/')  # 文件相对路径
-            relative = relative[len(relative)-1]
-            filedict['relative'] = relative
-            filedict['temppath'] = None
-            filelist.append(filedict)
+            info = py_info(name=name, href=href)
+            filelist.append(info)
 
     return filelist
 
 
-def downloadpy(pylist: list[dict], dir:str = path.get_data_temp_dir()):
+def downloadpy(pylist: list[py_info], dir: str = path.get_data_temp_dir()) -> list[py_info]:
     '''
     传入要下载的 pylist列表 和 暂存文件夹
     下载全部list里面的py文件
-    返回装有成功和失败的list
-    其中的每一项包含了所有的
+    返回下载失败的项目list
     '''
     faillist = []
-    successlist = []
-    per = 'https://raw.githubusercontent.com'
-    for item in pylist:
-        name = item.get('name')
-        href = item.get('href').replace('/blob/', '/')
-        url = per + href
+
+    for pyinfo in pylist:
+        name = pyinfo.name
+        url = pyinfo.get_raw_url()
 
         resp = None
         i = 0
         while i < config.get_retry():
             try:
                 print(f'第{i}次尝试下载 正在下载 {name} : {url}')
+                request.urlretrieve()
                 resp = request.urlopen(url)
                 print(f'response: {resp.getcode()}')
 
@@ -156,7 +168,7 @@ def downloadpy(pylist: list[dict], dir:str = path.get_data_temp_dir()):
 
                 # 如果文件夹不存在创建
                 # path : /JohnWes7/Daily_Nutrition/main/src/__init__.py
-                filepath = dir + item.get('relative')
+                filepath = dir + pyinfo.get_relative()
                 dirpath = os.path.dirname(filepath)  # 文件夹路径
 
                 if not os.path.exists(dirpath):
@@ -164,9 +176,8 @@ def downloadpy(pylist: list[dict], dir:str = path.get_data_temp_dir()):
 
                 with open(filepath, 'w', encoding='utf-8') as file:
                     file.write(code)
-                temp = item.copy()
-                temp['temppath'] = filepath
-                successlist.append(temp)
+                pyinfo.set_temppath(filepath)
+                faillist.append(pyinfo)
 
                 break
             except Exception as e:
@@ -174,20 +185,17 @@ def downloadpy(pylist: list[dict], dir:str = path.get_data_temp_dir()):
                 print(e)
                 if i == config.get_retry():
                     print(f'{name}下载失败')
-                    faillist.append(item.copy())
+                    faillist.append(pyinfo.copy())
 
-    result = {
-        'successlist': successlist,
-        'faillist': faillist
-    }
-    return result
+    
+    return faillist
 
 
 def replacepy():
     pass
 
 
-def tips(filelist: list[dict]):
+def tips(filelist: list[py_info]):
     print('='*30, 'info', '='*30)
     print(f'找到{len(filelist)}个文件')
     for item in filelist:
@@ -195,8 +203,7 @@ def tips(filelist: list[dict]):
     print('='*60)
 
 
-if __name__ == '__main__':
-
+def main():
     opener = downloads.build_custom_opener()
     request.install_opener(opener=opener)
 
@@ -220,41 +227,53 @@ if __name__ == '__main__':
     tips(filelist)
     input('按下回车开始下载')
 
-    #下载部分
+    # 下载部分
     print('='*30, '开始下载', '='*30)
     downloadlist = filelist
-    templ = []
     while True:
         # 下载
-        result = downloadpy(downloadlist)
+        fail = downloadpy(downloadlist)
         # 成功跳出
-        fail = result.get('faillist')
-        succ = result.get('successlist')
-        templ.extend(succ)
         if len(fail) == 0:
             break
-        # 失败重新尝试
+        # 有失败项目重新尝试
         else:
             print(f'{len(fail)}个下载失败：')
-            for item in fail:
-                print(item.get('name'), end=' ')
+            for info in fail:
+                print(info.name, end=' ')
             print()
             input('按下回车重新尝试下载失败项')
             downloadlist = fail
-    print('='*30,'下载完成','='*30,end='\n\n')
+    print('='*30, '下载完成', '='*30, end='\n\n')
 
-    print('='*30,'开始覆盖','='*30)
-    #覆盖部分
+    print('='*30, '开始覆盖', '='*30)
+    # 覆盖部分
     cwd = path.getcwd()
-    for item in templ:
-        temp = open(item.get('temppath'),'r',encoding='utf-8')
-        temp_data = temp.read()
-        local = open(cwd+item.get('relative'),'w',encoding='utf-8')
-        local.write(temp_data)
+    for info in filelist:
+        try:
+            name = info.name
+            print(f'覆盖{name}中')
+            temp = open(info.get_temppath(), 'r', encoding='utf-8')
+            temp_data = temp.read()
+            local = open(cwd+info.get_relative(), 'w', encoding='utf-8')
+            local.write(temp_data)
 
-        temp.close()
-        local.close()
-        os.remove(item.get('temppath'))
+            temp.close()
+            local.close()
+            os.remove(info.get_temppath())
+            print('覆盖成功')
+        except Exception as e:
+            print('错误', e)
     print()
-    
+
     input('done')
+
+
+if __name__ == '__main__':
+    # main()
+    opener = downloads.build_custom_opener()
+    resp = opener.open(
+        'https://raw.githubusercontent.com/JohnWes7/Daily_Nutrition/main/discovery.py')
+    print(type(resp))
+    print(resp.getheaders())
+    # print(resp.read().decode())
