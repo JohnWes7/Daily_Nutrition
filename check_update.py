@@ -14,7 +14,6 @@ import os
 from config import config
 from config import path
 import downloads
-import time
 
 
 class py_info:
@@ -40,9 +39,12 @@ class py_info:
 
     @staticmethod
     def __progressbar(chunk: int, chunk_num: int, total: int):
-        barmaxcount = 20
-
-        per = 1.0 * chunk * chunk_num / total
+        '''进度条'''
+        barmaxcount = 20 #进度条格子数量
+        if total == 0:
+            per = 1
+        else:
+            per = 1.0 * chunk * chunk_num / total
         if per > 1:
             per = 1
         kb = total/1024
