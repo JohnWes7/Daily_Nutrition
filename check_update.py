@@ -163,7 +163,7 @@ def tips(filelist: list[py_info]):
     print('='*30, 'info', '='*30)
     print(f'找到{len(filelist)}个文件')
     for item in filelist:
-        print(item.get('name'))
+        print(item.name)
     print('='*60)
 
 
