@@ -13,8 +13,8 @@ from urllib import request
 import os
 from config import config
 from config import path
-from http.client import HTTPResponse
 import downloads
+import time
 
 
 class py_info:
@@ -38,8 +38,57 @@ class py_info:
     def get_temppath(self):
         return self.__temppath
 
-    def set_temppath(self, temppath: str):
-        self.__temppath = temppath
+    @staticmethod
+    def __progressbar(chunk: int, chunk_num: int, total: int):
+        barmaxcount = 20
+
+        per = 1.0 * chunk * chunk_num / total
+        if per > 1:
+            per = 1
+        kb = total/1024
+        count = int(barmaxcount*per)
+
+        print('\rdownload {0:.2f}% :|{1}{2}| total:{3:.2f}KB'.format(
+            per*100, '■'*count, ' '*(barmaxcount-count), kb),end='')
+
+    def download(self, rootdir: str = path.get_data_temp_dir()):
+        '''下载该pyinfo的数据到指定目录 返回下载是否成功'''
+        url = self.get_raw_url()
+
+        resp = None
+        i = 0
+        while i < config.get_retry():
+            try:
+                # 如果文件夹不存在创建
+                # path : /JohnWes7/Daily_Nutrition/main/src/__init__.py
+                filepath = rootdir + self.get_relative()
+                dirpath = os.path.dirname(filepath)  # 文件夹路径
+
+                if not os.path.exists(dirpath):
+                    os.makedirs(dirpath)
+
+                print(f'第{i}次尝试下载 正在下载 {self.name} : {url}')
+                request.urlretrieve(url=url, filename=filepath,
+                                    reporthook=py_info.__progressbar)
+                print()
+                # resp = request.urlopen(url)
+                # print(f'response: {resp.getcode()}')
+
+                # # 读取代码并保存
+                # code = resp.read().decode()
+                # with open(filepath, 'w', encoding='utf-8') as file:
+                #     file.write(code)
+                self.__temppath = filepath
+
+                break
+            except Exception as e:
+                i += 1
+                print(e)
+                if i == config.get_retry():
+                    print(f'{self.name}下载失败')
+                    return False
+
+        return True
 
 
 def ispy(name: str):
@@ -116,40 +165,8 @@ def downloadpy(pylist: list[py_info], dir: str = path.get_data_temp_dir()) -> li
     faillist = []
 
     for pyinfo in pylist:
-        name = pyinfo.name
-        url = pyinfo.get_raw_url()
-
-        resp = None
-        i = 0
-        while i < config.get_retry():
-            try:
-                # 如果文件夹不存在创建
-                # path : /JohnWes7/Daily_Nutrition/main/src/__init__.py
-                filepath = dir + pyinfo.get_relative()
-                dirpath = os.path.dirname(filepath)  # 文件夹路径
-
-                if not os.path.exists(dirpath):
-                    os.makedirs(dirpath)
-
-                print(f'第{i}次尝试下载 正在下载 {name} : {url}')
-                request.urlretrieve(url=url,filename=filepath)
-
-                # resp = request.urlopen(url)
-                # print(f'response: {resp.getcode()}')
-
-                # # 读取代码并保存
-                # code = resp.read().decode()
-                # with open(filepath, 'w', encoding='utf-8') as file:
-                #     file.write(code)
-                pyinfo.set_temppath(filepath)
-
-                break
-            except Exception as e:
-                i += 1
-                print(e)
-                if i == config.get_retry():
-                    print(f'{name}下载失败')
-                    faillist.append(pyinfo)
+        if not pyinfo.download(rootdir=dir):
+            faillist.append(pyinfo)
 
     return faillist
 
@@ -222,11 +239,11 @@ def main():
         for info in replacelist:
             try:
                 name = info.name
-                print(f'覆盖{name}中')
-                #打开下载的文件
+                print(f'正在写入{name}')
+                # 打开下载的文件
                 temp = open(info.get_temppath(), 'r', encoding='utf-8')
                 temp_data = temp.read()
-                #打开本地需要替换或者新建的位置
+                # 打开本地需要替换或者新建的位置
                 local = open(cwd+info.get_relative(), 'w', encoding='utf-8')
                 local.write(temp_data)
 
@@ -237,14 +254,14 @@ def main():
             except Exception as e:
                 failr.append(info)
                 print('错误', e)
-        
+
         if len(failr) == 0:
             print('全部写入成功')
             break
         else:
             print(f'{len(failr)}个写入失败尝试重试')
             for info in failr:
-                print(info.name,end='')
+                print(info.name, end='')
             print()
             replacelist = failr
     print()
@@ -253,7 +270,6 @@ def main():
 
 
 if __name__ == '__main__':
-
     main()
 
     # opener = downloads.build_custom_opener()
