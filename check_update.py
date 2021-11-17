@@ -123,14 +123,6 @@ def downloadpy(pylist: list[py_info], dir: str = path.get_data_temp_dir()) -> li
         i = 0
         while i < config.get_retry():
             try:
-                print(f'第{i}次尝试下载 正在下载 {name} : {url}')
-                request.urlretrieve()
-                resp = request.urlopen(url)
-                print(f'response: {resp.getcode()}')
-
-                # 读取代码并保存
-                code = resp.read().decode()
-
                 # 如果文件夹不存在创建
                 # path : /JohnWes7/Daily_Nutrition/main/src/__init__.py
                 filepath = dir + pyinfo.get_relative()
@@ -139,10 +131,17 @@ def downloadpy(pylist: list[py_info], dir: str = path.get_data_temp_dir()) -> li
                 if not os.path.exists(dirpath):
                     os.makedirs(dirpath)
 
-                with open(filepath, 'w', encoding='utf-8') as file:
-                    file.write(code)
+                print(f'第{i}次尝试下载 正在下载 {name} : {url}')
+                request.urlretrieve(url=url,filename=filepath)
+
+                # resp = request.urlopen(url)
+                # print(f'response: {resp.getcode()}')
+
+                # # 读取代码并保存
+                # code = resp.read().decode()
+                # with open(filepath, 'w', encoding='utf-8') as file:
+                #     file.write(code)
                 pyinfo.set_temppath(filepath)
-                faillist.append(pyinfo)
 
                 break
             except Exception as e:
@@ -150,7 +149,7 @@ def downloadpy(pylist: list[py_info], dir: str = path.get_data_temp_dir()) -> li
                 print(e)
                 if i == config.get_retry():
                     print(f'{name}下载失败')
-                    faillist.append(pyinfo.copy())
+                    faillist.append(pyinfo)
 
     return faillist
 
