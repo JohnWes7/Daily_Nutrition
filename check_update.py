@@ -169,7 +169,7 @@ def tips(filelist: list[py_info]):
 
 def main():
     # 单独设置代理
-    ans = input('是否按照Config.ini 设置代理?\nY/n')
+    ans = input('是否按照Config.ini 设置代理? Y/n\n')
     if ans.__eq__('Y'):
         opener = downloads.build_custom_opener()
         request.install_opener(opener=opener)
