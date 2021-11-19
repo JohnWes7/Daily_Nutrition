@@ -9,16 +9,11 @@ from urllib import request
 dirpath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0,dirpath)
 from config import config
-from bs4 import BeautifulSoup
+import json
 
 module_dict = {
-    'lxml' : 'lxml',
     'selenium' : 'selenium',
-    'git':'gitpython'
 }
-
-github_api_url ='https://api.github.com/repos/JohnWes7/Daily_Nutrition'
-github_page_url = 'https://github.com/JohnWes7/Daily_Nutrition' 
 
 
 def check_module(module_dict:dict=module_dict):
@@ -51,3 +46,23 @@ def check():
     if not judge:
         input('模组检测失败，请手动下载或者检查网络环境重新执行程序')
         sys.exit(1)
+
+def get_json_data(path: str):
+    '''
+    获得json数据
+    从path中按照utf-8编码读取数据
+    并且自动转成json格式
+    '''
+    data = None
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as file:
+            data = json.loads(file.read())
+
+    return data
+
+def save_str_data(path: str, json_str: str):
+    '''
+    存储str数据到path路径
+    '''
+    with open(path, 'w', encoding='utf-8') as file:
+        file.write(json_str)

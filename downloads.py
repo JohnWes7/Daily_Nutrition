@@ -3,94 +3,220 @@
 @github : https://github.com/JohnWes7/Daily_Nutrition
 '''
 from src import tool
-if __name__=='__main__':
+if __name__ == '__main__':
     tool.check()
 from types import FunctionType
 from typing import Any
 from urllib import request
-from urllib.parse import urlencode
-from selenium import webdriver
+from urllib.parse import (urlencode, _splittype)
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions
-from lxml import etree
 from config import path
 from config import url
 from config import config
+from config import cookie
+from bs4 import BeautifulSoup
 import json
 import os
 import sys
 from src import custom_driver
+from urllib.error import ContentTooShortError
+import tempfile
+import contextlib
 
 
 pixiv_discovery_api1 = 'https://www.pixiv.net/rpc/recommender.php?type=illust&sample_illusts=auto&num_recommendations=60&page=discovery&mode=all'
 pixiv_discovery_api2 = 'https://www.pixiv.net/ajax/discovery/artworks'
 
-
-def get_json_data(path: str):
-    '''
-    获得json数据
-    从path中按照utf-8编码读取数据
-    并且自动转成json格式
-    '''
-    data = None
-    if os.path.exists(path):
-        with open(path, 'r', encoding='utf8') as file:
-            data = json.loads(file.read())
-
-    return data
+_opener = None
+_headtemplate = {
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36 Edg/95.0.1020.30',
+    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+}
 
 
-def save_str_data(path: str, json_str: str):
-    '''
-    存储str数据到path路径
-    '''
-    with open(path, 'w', encoding='utf8') as file:
-        file.write(json_str)
+class illustration:
+
+    def __init__(self, id) -> None:
+        self.id = id  # id
+        self.__name = None  # 文件名称
+        self.__srclist = None  # 下载源
+
+    @staticmethod
+    def progressbar(chunk: int, chunk_num: int, total: int):
+        '''进度条'''
+        barmaxcount = 20  # 进度条格子数量
+        if total == 0:
+            per = 1
+        else:
+            per = 1.0 * chunk * chunk_num / total
+        if per > 1:
+            per = 1
+
+        kb = total/1024
+        size = '{0:.2f}KB'.format(kb)
+        if kb > 1024:
+            mb = kb/1024
+            size = '{0:.2f}MB'.format(mb)
+        
+        count = int(barmaxcount*per)
+
+        print('\rdownload {0:.2f}% :|{1}{2}| total:{3}'.format(
+            per*100, '■'*count, ' '*(barmaxcount-count), size), end='')
+
+    def get_html(self, opener: request.OpenerDirector = None, headers=None) -> str:
+        '''获得该插画主页html'''
+        info_url = f'https://www.pixiv.net/artworks/{self.id}'
+        global _opener
+        if opener == None:
+            print('默认opener')
+            if _opener == None:
+                opener = _opener = request.build_opener()
+            else:
+                opener = _opener
+        if headers == None:
+            headers = _headtemplate
+
+        head = headers.copy()
+        resp = opener.open(request.Request(
+            url=info_url, headers=head, method='GET'))
+        return resp.read().decode()
+
+    def get_name(self, opener=None, headers=None):
+        global _opener
+        if self.__name == None:
+            if opener == None:
+                if _opener == None:
+                    opener = _opener = request.build_opener()
+                else:
+                    opener = _opener
+            if headers == None:
+                headers = _headtemplate
+
+            html = self.get_html(opener, headers)
+            soup = BeautifulSoup(html, 'html.parser')
+            tag = soup.select_one('meta[property="twitter:title"]')
+            name = tag.attrs.get('content')
+
+            name = name.replace('/', '')
+            name = name.replace('\\', '')
+            name = name.replace("'", '')
+            name = name.replace('"', '')
+            name = name.replace('?', '')
+            name = name.replace('*', '')
+            name = name.replace('<', '')
+            name = name.replace('>', '')
+            self.__name = name
+
+        return self.__name
+
+    def get_srclist(self, opener=None, headers=None):
+        global _opener
+        if self.__srclist == None:
+            if opener == None:
+                if _opener == None:
+                    opener = _opener = request.build_opener()
+                else:
+                    opener = _opener
+            if headers == None:
+                headers = _headtemplate
+
+            src_url = f'https://www.pixiv.net/ajax/illust/{self.id}/pages?lang=zh'
+            head = headers.copy()
+            head['referer'] = f'https://www.pixiv.net/artworks/{self.id}'
+            resp = opener.open(request.Request(
+                src_url, headers=head, method='GET'))
+            srcjson = resp.read().decode()
+            srcjson = json.loads(srcjson)
+
+            self.__srclist = srcjson.get('body')
+
+        return self.__srclist
+
+    def download(self, dir, opener=None, reporthook=progressbar):
+        pass
 
 
-def update_cookies(oldcookies: list, newcookies: list) -> list:
-    '''
-    更新cookie 返回用新cookie更新后的cookie数据
-    '''
-    if newcookies == None:
-        return
+def opener_urlretrieve(url, opener: request.OpenerDirector = None, filename=None, reporthook=None, data=None):
+    """
+    魔改urlretrieve 可以用opener
+    Retrieve a URL into a temporary location on disk.
 
-    oldcopy = oldcookies.copy()
-    add = []
-    for new in newcookies:
-        isadd = True
-        for old in oldcopy:
-            if old.get('name').__eq__(new.get('name')):
-                old.update(new)
-                isadd = False
-                break
-        if isadd:
-            add.append(new)
+    Requires a URL argument. If a filename is passed, it is used as
+    the temporary file location. The reporthook argument should be
+    a callable that accepts a block number, a read size, and the
+    total file size of the URL target. The data argument should be
+    valid URL encoded data.
 
-    oldcopy.extend(add)
-    return oldcopy
+    If a filename is passed and the URL points to a local resource,
+    the result is a copy from local file to new file.
+
+    Returns a tuple containing the path to the newly created
+    data file as well as the resulting HTTPMessage object.
+    """
+    if opener is None:
+        opener = request.build_opener()
+    
+    u = url
+    if type(url) == request.Request:
+        u = url.full_url
+    url_type, path = _splittype(u)
+
+    with contextlib.closing(opener.open(url, data)) as fp:
+        headers = fp.info()
+
+        # Just return the local path and the "headers" for file://
+        # URLs. No sense in performing a copy unless requested.
+        if url_type == "file" and not filename:
+            return os.path.normpath(path), headers
+
+        # Handle temporary file setup.
+        if filename:
+            tfp = open(filename, 'wb')
+        else:
+            tfp = tempfile.NamedTemporaryFile(delete=False)
+            filename = tfp.name
+
+        with tfp:
+            result = filename, headers
+            bs = 1024*8
+            size = -1
+            read = 0
+            blocknum = 0
+            if "content-length" in headers:
+                size = int(headers["Content-Length"])
+
+            if reporthook:
+                reporthook(blocknum, bs, size)
+
+            while True:
+                block = fp.read(bs)
+                if not block:
+                    break
+                read += len(block)
+                tfp.write(block)
+                blocknum += 1
+                if reporthook:
+                    reporthook(blocknum, bs, size)
+
+    if size >= 0 and read < size:
+        raise ContentTooShortError(
+            "retrieval incomplete: got only %i out of %i bytes"
+            % (read, size), result)
+
+    return result
 
 
-def update_local_cookies(newcookies: list):
-    '''
-    用新cookie 更新到本地
-    '''
-    oldcookie = get_json_data(path.get_cookie_path())
-    if oldcookie == None:
-        # 如果先前没有值直接保存
-        oldcookie = newcookies
-    else:
-        oldcookie = update_cookies(oldcookie, newcookies)
-    save_str_data(path.get_cookie_path(), json_str=json.dumps(oldcookie))
-
-
-def open_driver_save_cookie():
+def __open_driver_save_cookie():
+    '''打开浏览器进行手动登录并且更新本地cookie'''
     discover_page = 'https://www.pixiv.net/discovery'
 
     print(f'setting browser: {config.get_browser()}')
     # 根据设置获得浏览器 options
-    od_dict = custom_driver.get_custom_options_desired_capabilities(config.get_browser(),is_proxy=config.get_is_proxies())
-    driver = custom_driver.get_custom_driver(config.get_browser(),options=od_dict.get('options'))
+    od_dict = custom_driver.get_custom_options_desired_capabilities(
+        config.get_browser(), is_proxy=config.get_is_proxies())
+    driver = custom_driver.get_custom_driver(
+        config.get_browser(), options=od_dict.get('options'))
 
     print(type(driver))
     # 打开登录页面
@@ -113,48 +239,12 @@ def open_driver_save_cookie():
     # 关闭浏览器
     driver.quit()
 
-    # 保存cookie TODO:cookie不删除重写保存
-    update_local_cookies(newcookies=cookies)
-
-
-def get_head_with_cookie():
-    head = {
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36 Edg/95.0.1020.30',
-        'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-        'referer': 'https://www.pixiv.net/discovery'
-    }
-
-    cookiejson = get_json_data(path.get_cookie_path())
-    # 如果没有值的花就直接来个新的
-    if type(cookiejson) != list:
-        cookiejson = []
-
-    # 添加客制化cookie
-    for name in config.custom_cookie.keys():
-        tempdict = {}
-        tempdict['name'] = name
-        tempdict['value'] = config.custom_cookie.get(name)
-
-        cookiejson.append(tempdict)
-
-    # 添加已经抓取的cookie到head
-    cookiestr = ''
-    for i, item in enumerate(cookiejson):
-        name = item.get('name')
-        value = item.get('value')
-        temp = None
-        if i == 0:
-            temp = f'{name}={value}'
-        else:
-            temp = f'; {name}={value}'
-        cookiestr += temp
-
-    head['cookie'] = cookiestr
-
-    return head
+    # 保存cookie
+    cookie.update_local_cookies(newcookies=cookies)
 
 
 def build_custom_opener() -> request.OpenerDirector:
+    '''根据config.ini创建一个具有代理的opener'''
     if config.get_is_proxies():
         # 代理
         proxies = config.get_proxies_dict()
@@ -167,15 +257,20 @@ def build_custom_opener() -> request.OpenerDirector:
         return opener
 
 
-def dicovery_json(head):
+def dicovery_json(head=None, opener=None):
+    '''获取发现api数据'''
+    # 检查传入opener
+    if opener is None:
+        opener = request.build_opener()
+    if head == None:
+        head = cookie.get_headtemplate()
+
     # 更改header
     head['referer'] = 'https://www.pixiv.net/discovery'
 
     # 获得查询字符串
     qd = config.get_discovery_query_dict()
     query_string = urlencode(qd)
-
-    opener = build_custom_opener()
 
     # request
     url = pixiv_discovery_api2 + '?' + query_string
@@ -193,60 +288,70 @@ def dicovery_json(head):
 
 def append_record_pid_local(pid, is_success):
     '''
+    将pid根据是否成功添加到本地下载记录列表
     下载pid后回调函数
     '''
-    #如果没有成功下载不执行
+    # 如果没有成功下载不执行
     if not is_success:
         return
 
-    record = get_json_data(path=path.get_download_record_path())
+    record = tool.get_json_data(path=path.get_download_record_path())
     if record == None:
         record = []
-    
+
     record.append(pid)
-    save_str_data(path.get_download_record_path(),json.dumps(record))
+    tool.save_str_data(path.get_download_record_path(), json.dumps(record))
 
 
-def download_idlist(id_list: list, head, callback_delegate:FunctionType = None):
+def download_idlist(id_list: list, dir, opener=None, head=None, callback_delegate: FunctionType = None, retry=3, iscover=False):
     '''
     下载所有的id_list 里面的 pid
     返回所有下载成功的pid\n
     如果传入了委托  会在每下载完一个pid时调用  委托会传入一个 pid: str 和 is_success: bool\n
     delegat: method(pid: str, is_success: bool)\n
     '''
-    opener = build_custom_opener()
+    global _opener
+    if opener == None:
+        if _opener == None:
+            opener = _opener = request.build_opener()
+        else:
+            opener = _opener
+        if head == None:
+            head = _headtemplate
 
     success_list = []
-    for i,id in enumerate(id_list):
-        print(f'list[{i}]: ',end='')
-        try:
-            is_success = download_id(
-                pid=id, head=head, opener=opener, image_quality=config.get_image_quality(), callback_delegate=callback_delegate)
-        except Exception as e:
-            print(e)
+    for i, id in enumerate(id_list):
+        print(f'list[{i}]: ', end='')
+        
+        is_success = download_id(pid=id, dir=dir, headers=head, opener=opener, image_quality=config.get_image_quality(), callback_delegate=callback_delegate, retry=retry, iscover=iscover)
         if is_success:
             success_list.append(id)
-        
         print()
 
-    opener.close()
     return success_list
 
 
-def download_id(pid, head, image_quality: str = 'original', opener=None,callback_delegate:FunctionType = None):
+def download_id(pid, dir, opener=None, headers=None, image_quality: str = 'original',  callback_delegate: FunctionType = None, retry=3, iscover=False):
     '''
     pid 要下载的pid image_quality图片质量\n
     如果传入了委托  会在函数最后结束时调用 委托会传入一个 pid: str 和 is_success: bool\n
     delegat: method(pid: str, is_success: bool)\n
     用提供的 head 和opener下载 pid中的所有画
-    如果没有opener则用build_custom_opener()生成一个新的
+    如果没有opener则用request默认opener
     '''
-    
-    # 如果没有传入opener 就要自己造一个
-    if opener == None:
-        opener = build_custom_opener()
 
-    print('='*30,f'执行下载{pid}','='*30)
+    # 如果没有传入opener 就要自己造一个
+    global _opener
+    if opener == None:
+        if _opener == None:
+            opener = _opener = request.build_opener()
+        else:
+            opener = _opener
+        if headers == None:
+            headers = _headtemplate
+
+    head = headers.copy()
+    print('='*30, f'执行下载{pid}', '='*30)
     info_url = f'https://www.pixiv.net/artworks/{pid}'
     # 抓图片源url 回应图片源json
     src_url = f'https://www.pixiv.net/ajax/illust/{pid}/pages?lang=zh'
@@ -259,41 +364,42 @@ def download_id(pid, head, image_quality: str = 'original', opener=None,callback
     # 开始获取
     info_resp = None
     i = 0
-    while i < config.get_retry():
+    while i < retry:
         try:
             print(f'times:{i} 获取图片信息from: {info_url}')
             info_resp = opener.open(requ_info)
             break
         except Exception as e:
             print(f'times:{i} {info_url}获取抓取图片信息失败', e)
-            if(i == config.get_retry() - 1):
+            if(i == retry - 1):
                 if type(callback_delegate) == FunctionType:
-                    callback_delegate(pid,False)
+                    callback_delegate(pid, False)
                 return False
-        i+=1
-    
+        i += 1
+
     html_str = info_resp.read().decode()
-    e = etree.HTML(html_str)
-    # 拿到有信息的 description
-    tu_title = e.xpath(description_xpath)
+    # 拿到名字信息
+    soup = BeautifulSoup(html_str, 'html.parser')
+    tag = soup.select_one('meta[property="twitter:title"]')
+    tu_title = tag.attrs.get('content')
 
     # 抓取图片源
     requ = request.Request(url=src_url, headers=head, method='GET')
-    request.urlretrieve
+
     src_resp = None
     i = 0
-    while i < config.get_retry():
+    while i < retry:
         try:
             print(f'times:{i} 正在获取图片下载源from: {src_url}')
             src_resp = opener.open(requ)
             break
         except Exception as e:
             print(f'times:{i} {src_url}获取图片源失败', e)
-            if(i == config.get_retry() - 1):
+            if(i == retry - 1):
                 if type(callback_delegate) == FunctionType:
-                    callback_delegate(pid,False)
+                    callback_delegate(pid, False)
                 return False
-        i+=1
+        i += 1
     re_byte = src_resp.read()
     re_str = re_byte.decode('utf-8')
     temp_data = json.loads(re_str)  # 获得装有图片源的json数据
@@ -311,53 +417,55 @@ def download_id(pid, head, image_quality: str = 'original', opener=None,callback
 
         # 生成文件名
         filename = f'{pid}_{tu_title}_p{p}{suffix}'
-        filename = filename.replace('/','|')
-        filename = filename.replace('\\','|')
-        filename = filename.replace('\'','')
+        filename = filename.replace('/', '')
+        filename = filename.replace('\\', '')
+        filename = filename.replace("'", '')
+        filename = filename.replace('"', '')
+        filename = filename.replace('?', '')
+        filename = filename.replace('*', '')
+        filename = filename.replace('<', '')
+        filename = filename.replace('>', '')
         print(f'准备下载{filename}')
 
-        #判断文件覆盖
-        if os.path.exists(config.get_ads_download_path()+filename):
+        # 判断文件覆盖
+        if os.path.exists(dir+filename):
             print(f'文件{filename}已经下载过了', end='')
 
-            is_cover = config.get_is_cover()
-
-            if is_cover:
-                print(f'正在重新下载_is_cover: {is_cover}')
+            if iscover:
+                print(f'正在重新下载_is_cover: {iscover}')
             else:
-                print(f'跳过_is_cover: {is_cover}')
+                print(f'跳过_is_cover: {iscover}')
                 is_successful.append(True)
                 continue
-        
-        #判断下载文件夹路径是否正确
-        if not os.path.exists(config.get_ads_download_path()):
-            os.makedirs(config.get_ads_download_path())
-            
+
+        # 判断下载文件夹路径是否正确
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+
         # 下载
         trycount = 0
-        while trycount < config.get_retry():
+        while trycount < retry:
             try:
-                ortu_resp = opener.open(request.Request(url=tu_url, headers=head, method='GET'))
-                print('wb:',ortu_resp.getcode())
-                # 保存
-                with open(config.get_ads_download_path() + filename, 'wb') as file:
-                    file.write(ortu_resp.read())
+                opener_urlretrieve(url=request.Request(tu_url,headers=head), opener=opener, filename=dir +
+                                   filename, reporthook=illustration.progressbar)
+                print()
                 print(f'times:{trycount} from {tu_url} 下载 {filename} 成功')
                 is_successful.append(True)
                 break
             except Exception as e:
                 print(f'times:{trycount} from {tu_url} 下载 {filename} 失败', e)
-                if(trycount == config.get_retry() - 1):
+                if(trycount == retry - 1):
                     is_successful.append(False)
                     break
-            trycount+=1
+            trycount += 1
 
-    #ans 本次下载是否成功
+    # ans 本次下载是否成功
     ans = True
     for condition in is_successful:
         ans = ans and condition
-    
-    if type(callback_delegate) == FunctionType:callback_delegate(pid,ans)
+
+    if type(callback_delegate) == FunctionType:
+        callback_delegate(pid, ans)
 
     return ans
 
@@ -376,7 +484,8 @@ def parsing_tutu_data2(jsondata):
     return id_list
 
 
-def tips():
+def __tips():
+    '''debug 打印'''
     print('='*30, 'Tips', '='*30)
     print('当前设置:')
     print(f'图片质量image_quality : {config.get_image_quality()}')
@@ -396,36 +505,37 @@ def tips():
     print('='*60)
 
 
-def force_login():
+def __force_login():
     forcelogin = config.get_forcelogin()
     print(f'进行检测强制登录  forcelogin: {forcelogin}')
     if not config.get_forcelogin():
         return
 
-    open_driver_save_cookie()
+    __open_driver_save_cookie()
 
 
-def until_linkup():
+def __until_linkup(opener=None):
     discoveryjson = None
     while True:
         try:
             print('尝试连接pixiv获取数据')
             print('加载header')
-            head = get_head_with_cookie()
+            head = cookie.get_head_with_cookie()
             print('连接 pixiv')
-            discoveryjson = dicovery_json(head=head)
+            discoveryjson = dicovery_json(head=head, opener=opener)
             break
         except Exception as e:
             print('连接失败,更新cookie', e)
             try:
-                open_driver_save_cookie()
+                __open_driver_save_cookie()
             except Exception as e:
-                input(f'selenium 出现问题(大概率是因为浏览器也连不上) 请检查Config.ini 中的代理设置以及驱动版本：{e}')
+                input(
+                    f'selenium 出现问题(大概率是因为浏览器也连不上) 请检查Config.ini 中的代理设置以及驱动版本：{e}')
                 return
 
     # 保存数据
-    save_str_data(path.get_ajax_discovery_data_path(),
-                  json.dumps(discoveryjson, ensure_ascii=False))
+    tool.save_str_data(path.get_ajax_discovery_data_path(),
+                       json.dumps(discoveryjson, ensure_ascii=False))
     return discoveryjson
 
 
@@ -436,7 +546,7 @@ def contrast_with_localrecord(id_list: list):
     unrecord：对比之后发现没有被记录的
     recorded：已经被记录过的项
     '''
-    record = get_json_data(path.get_download_record_path())
+    record = tool.get_json_data(path.get_download_record_path())
     if record == None:
         record = []
 
@@ -457,13 +567,22 @@ def contrast_with_localrecord(id_list: list):
 
 
 if __name__ == '__main__':
-    tips()
+    headers = cookie.get_head_with_cookie()
+    op = build_custom_opener()
+    # test = illustration('94215843')
+    # print(test.get_srclist(op, headers))
+    # print(test.get_name(op,headers=headers))
+
+    # input('done')
+    __tips()
 
     # 是否强制执行登录
-    force_login()
+    __force_login()
+
+    opener = build_custom_opener()
 
     # 直到连接上pixiv 并返回json推荐数据
-    discoveryjson = until_linkup()
+    discoveryjson = __until_linkup(opener=opener)
     if dicovery_json == None:
         input('没有获取到数据 结束进程')
         sys.exit(1)
@@ -474,18 +593,21 @@ if __name__ == '__main__':
     print(f'pixiv 根据xp推荐 返回了{len(id_list)}个pid ：\n{id_list}')
     # 对比
     id_dict = contrast_with_localrecord(id_list)
-    print('其中有', len(id_dict.get('recorded')),'个id已经下载过 : \n', id_dict.get('recorded'))
-    print('剩余', len(id_dict.get('unrecord')),'个 : \n', id_dict.get('unrecord'))
-    need_d = (id_dict.get('unrecord') if config.get_skip_recorded() else id_list).copy()
-    print(f'skip: {config.get_skip_recorded()} 需要下载{len(need_d)}\n',need_d)
+    print('其中有', len(id_dict.get('recorded')), '个id已经下载过 : \n', id_dict.get(
+        'recorded'), '\n剩余', len(id_dict.get('unrecord')), '个 : \n', id_dict.get('unrecord'))
+    need_d = (id_dict.get('unrecord')
+              if config.get_skip_recorded() else id_list).copy()
+    print(f'skip: {config.get_skip_recorded()} 需要下载{len(need_d)}\n', need_d)
     input('回车确认开始下载')
 
     # 下载list中的所有pidhua
     print('='*30, '开始下载', '='*30)
-    head = get_head_with_cookie()
-    success_list = download_idlist(id_list=need_d, head=head, callback_delegate=append_record_pid_local)
+    head = cookie.get_head_with_cookie()
+    success_list = download_idlist(
+        id_list=need_d, dir=path.get_tutu_dir(), retry=config.get_retry(), iscover=config.get_is_cover(), opener=opener, head=head, callback_delegate=append_record_pid_local)
     print(f'下载成功数 ：{len(success_list)}')
     print(success_list)
+    #
 
     # 统计失败
     for id in success_list:

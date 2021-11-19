@@ -6,7 +6,7 @@ config类因为没有get;所以全部包装成方法防止被修改好了
 import os
 import json
 import configparser
-
+from src import tool
 
 
 class path:
@@ -94,6 +94,92 @@ class url:
         return 'https://www.pixiv.net/discovery'
 
 
+class cookie: 
+    custom_cookie ={
+
+    }
+    
+    headtemplate = {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36 Edg/95.0.1020.30',
+        'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'referer': 'https://www.pixiv.net/discovery'
+    }
+
+    @staticmethod
+    def get_headtemplate():
+        return cookie.headtemplate.copy()
+
+    @staticmethod
+    def get_head_with_cookie():
+        '''获取本地cookie'''
+        head = cookie.headtemplate
+
+        cookiejson = tool.get_json_data(path.get_cookie_path())
+        # 如果没有值的花就直接来个新的
+        if type(cookiejson) != list:
+            cookiejson = []
+
+        # 添加客制化cookie
+        for name in cookie.custom_cookie.keys():
+            tempdict = {}
+            tempdict['name'] = name
+            tempdict['value'] = config.custom_cookie.get(name)
+
+            cookiejson.append(tempdict)
+
+        # 添加已经抓取的cookie到head
+        cookiestr = ''
+        for i, item in enumerate(cookiejson):
+            name = item.get('name')
+            value = item.get('value')
+            temp = None
+            if i == 0:
+                temp = f'{name}={value}'
+            else:
+                temp = f'; {name}={value}'
+            cookiestr += temp
+
+        head['cookie'] = cookiestr
+
+        return head
+
+
+    @staticmethod
+    def update_cookies(oldcookies: list, newcookies: list) -> list:
+        '''
+        更新cookie 返回用新cookie更新后的cookie数据
+        '''
+        if newcookies == None:
+            return
+
+        oldcopy = oldcookies.copy()
+        add = []
+        for new in newcookies:
+            isadd = True
+            for old in oldcopy:
+                if old.get('name').__eq__(new.get('name')):
+                    old.update(new)
+                    isadd = False
+                    break
+            if isadd:
+                add.append(new)
+
+        oldcopy.extend(add)
+        return oldcopy
+
+    @staticmethod
+    def update_local_cookies(newcookies: list):
+        '''
+        用新cookie 更新到本地
+        '''
+        oldcookie = tool.get_json_data(path.get_cookie_path())
+        if oldcookie == None:
+            # 如果先前没有值直接保存
+            oldcookie = newcookies
+        else:
+            oldcookie = cookie.update_cookies(oldcookie, newcookies)
+        tool.save_str_data(path.get_cookie_path(), json_str=json.dumps(oldcookie))
+
 
 # 通过静态方法调用放外面
 # 默认设置
@@ -126,19 +212,6 @@ link = 'link'
 
 class config:
     '''设置类获得所有ini里面的设置'''
-
-    #自定义cookie 现在只能在代码这里加入 基本放弃
-    custom_cookie = {
-
-    }
-
-    @staticmethod
-    def get_local_cookie():
-        '''获得本地cookie 这方法随便塞的地方'''
-        with open(config.cookie_path, 'r', encoding='utf-8') as file:
-            data = json.loads(file.read())
-
-        return data
 
     @staticmethod
     def get_image_quality():

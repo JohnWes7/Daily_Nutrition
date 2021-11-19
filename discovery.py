@@ -13,6 +13,7 @@ from selenium.webdriver.support import expected_conditions
 from config import url
 from config import path
 from config import config
+from config import cookie
 import downloads
 from src import custom_driver
 import re
@@ -105,7 +106,7 @@ def open_discovery():
     driver.get(url.get_pixiv())  # 打开网页
     # 加入cookies
     print('加入cookies到浏览器登录')
-    cookiejson = downloads.get_json_data(path.get_cookie_path())
+    cookiejson = tool.get_json_data(path.get_cookie_path())
     if type(cookiejson) == list:
         for item in cookiejson:
             try:
@@ -121,7 +122,7 @@ def open_discovery():
     WebDriverWait(driver=driver, timeout=99999).until(expected_conditions.title_is('pixiv'))
     print('更新本地cookie并跳转')
     cookies = driver.get_cookies()
-    downloads.update_local_cookies(cookies)
+    cookie.update_local_cookies(cookies)
 
     
     try:
@@ -132,7 +133,7 @@ def open_discovery():
                       poll_frequency=1).until(delegate_title_is_pixiv)
         print('更新本地cookie')
         cookies = driver.get_cookies()
-        downloads.update_local_cookies(cookies)
+        cookie.update_local_cookies(cookies)
     except Exception as e:
         print(e)
     
@@ -174,7 +175,7 @@ if __name__ == '__main__':
         print(e)
     
     # 保存这次浏览
-    downloads.save_str_data(path.get_bookmarkdata_path(), json.dumps(post_list))
+    tool.save_str_data(path.get_bookmarkdata_path(), json.dumps(post_list))
 
     d_list = get_pid_list()
     print(f'开始执行下载\n将要执行下载：{len(d_list)}\nlist:', d_list)
@@ -182,7 +183,7 @@ if __name__ == '__main__':
     # 执行下载
     try:
         downloads.download_idlist(
-            id_list=d_list, head=downloads.get_head_with_cookie())
+            id_list=d_list, head=cookie.get_head_with_cookie())
     except Exception as e:
         print('下载发生错误 Exception: ', e)
 

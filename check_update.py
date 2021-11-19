@@ -13,7 +13,6 @@ from urllib import request
 import os
 from config import config
 from config import path
-import downloads
 
 
 class py_info:
@@ -38,9 +37,9 @@ class py_info:
         return self.__temppath
 
     @staticmethod
-    def __progressbar(chunk: int, chunk_num: int, total: int):
+    def progressbar(chunk: int, chunk_num: int, total: int):
         '''进度条'''
-        barmaxcount = 20 #进度条格子数量
+        barmaxcount = 20  # 进度条格子数量
         if total == 0:
             per = 1
         else:
@@ -51,7 +50,7 @@ class py_info:
         count = int(barmaxcount*per)
 
         print('\rdownload {0:.2f}% :|{1}{2}| total:{3:.2f}KB'.format(
-            per*100, '■'*count, ' '*(barmaxcount-count), kb),end='')
+            per*100, '■'*count, ' '*(barmaxcount-count), kb), end='')
 
     def download(self, rootdir: str = path.get_data_temp_dir()):
         '''下载该pyinfo的数据到指定目录 返回下载是否成功'''
@@ -71,7 +70,7 @@ class py_info:
 
                 print(f'第{i}次尝试下载 正在下载 {self.name} : {url}')
                 request.urlretrieve(url=url, filename=filepath,
-                                    reporthook=py_info.__progressbar)
+                                    reporthook=py_info.progressbar)
                 print()
                 # resp = request.urlopen(url)
                 # print(f'response: {resp.getcode()}')
@@ -173,11 +172,7 @@ def downloadpy(pylist: list[py_info], dir: str = path.get_data_temp_dir()) -> li
     return faillist
 
 
-def replacepy():
-    pass
-
-
-def tips(filelist: list[py_info]):
+def __tips(filelist: list[py_info]):
     print('='*30, 'info', '='*30)
     print(f'找到{len(filelist)}个文件')
     for item in filelist:
@@ -185,12 +180,20 @@ def tips(filelist: list[py_info]):
     print('='*60)
 
 
-def main():
+def __main():
     # 单独设置代理
     ans = input('是否按照Config.ini 设置代理? Y/n\n')
     if ans.__eq__('Y'):
-        opener = downloads.build_custom_opener()
-        request.install_opener(opener=opener)
+        '''根据config.ini创建一个具有代理的opener'''
+        if config.get_is_proxies():
+            # 代理
+            proxies = config.get_proxies_dict()
+            prox = request.ProxyHandler(proxies=proxies)
+            # opener
+            opener = request.build_opener(prox)
+        else:
+            opener = request.build_opener()
+        request.install_opener(opener)
 
     # 连接部分
     filelist = None
@@ -209,8 +212,7 @@ def main():
     print('='*30, '仓库信息获取完毕', '='*30, end='\n\n')
 
     # 打印提示
-    tips(filelist)
-    input('按下回车开始下载')
+    __tips(filelist)
 
     # 下载部分
     print('='*30, '开始下载', '='*30)
@@ -272,7 +274,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    
+    __main()
 
     # opener = downloads.build_custom_opener()
     # resp = opener.open(
