@@ -2,19 +2,18 @@
 @author : johnwest
 @github : https://github.com/JohnWes7/Daily_Nutrition
 '''
+
+
 from src import tool
 if __name__ == '__main__':
     tool.check()
+from config import path, url, recordcookie, config
 from types import FunctionType
 from typing import Any
 from urllib import request
 from urllib.parse import (urlencode, _splittype)
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions
-from config import path
-from config import url
-from config import config
-from config import recordcookie
 from bs4 import BeautifulSoup
 import json
 import os
@@ -42,14 +41,13 @@ class illustration:
         self.__name = None  # 文件名称
         self.__srclist = None  # 下载源
 
-    @staticmethod
-    def progressbar(chunk: int, chunk_num: int, total: int):
+    def progressbar(block_num: int, block_size: int, total: int, name):
         '''进度条'''
         barmaxcount = 20  # 进度条格子数量
         if total == 0:
             per = 1
         else:
-            per = 1.0 * chunk * chunk_num / total
+            per = 1.0 * block_num * block_size / total
         if per > 1:
             per = 1
 
@@ -61,8 +59,8 @@ class illustration:
 
         count = int(barmaxcount*per)
 
-        print('\rdownload {0:.2f}% :|{1}{2}| total:{3}'.format(
-            per*100, '■'*count, ' '*(barmaxcount-count), size), end='')
+        print('\rdownload {4} {0:.2f}% :|{1}{2}| total:{3}'.format(
+            per*100, '■'*count, ' '*(barmaxcount-count), size, name), end='')
 
     def get_html(self, opener: request.OpenerDirector = None, headers=None) -> str:
         '''获得该插画主页html'''
@@ -83,6 +81,7 @@ class illustration:
         return resp.read().decode()
 
     def get_name(self, opener=None, headers=None):
+        '''获取插画标题'''
         global _opener
         if self.__name == None:
             if opener == None:
@@ -110,7 +109,8 @@ class illustration:
 
         return self.__name
 
-    def get_srclist(self, opener=None, headers=None):
+    def get_srclist(self, opener=None, headers=None) -> list:
+        '''获取该插画的图源url'''
         global _opener
         if self.__srclist == None:
             if opener == None:
@@ -133,11 +133,32 @@ class illustration:
 
         return self.__srclist
 
-    def download(self, dir, opener=None, reporthook=progressbar):
-        pass
+    def download(self, dir, opener=None, headers=None, image_quality: str = 'original', reporthook=progressbar):
+        global _opener
+        if opener == None:
+            if _opener == None:
+                opener = _opener = request.build_opener()
+            else:
+                opener = _opener
+            if headers == None:
+                headers = _headtemplate
+
+        srclist = self.get_srclist(opener=opener, headers=headers)
+        name = self.get_name(opener=opener, headers=headers)
+
+        head = headers.copy()
+        head['referer'] = 'https://www.pixiv.net/'
+        for p, url in enumerate(srclist):
+            imageurl = url.get('urls').get(image_quality)
+            temp = os.path.splitext(imageurl)
+            suffix = temp[len(temp) - 1]
+            filename = f'{self.id}_{name}_p{p}{suffix}'
+            custom_urlretrieve(request.Request(imageurl, headers=head), opener=opener,
+                               filename=dir+filename, reporthook=lambda bn, bs, total: illustration.progressbar(bn,bs,total,f'{name} p{p}'))
+            print()
 
 
-def opener_urlretrieve(url, opener: request.OpenerDirector = None, filename=None, reporthook=None, data=None):
+def custom_urlretrieve(url, opener: request.OpenerDirector = None, filename=None, reporthook=None, data=None):
     """
     魔改urlretrieve 可以用opener
     Retrieve a URL into a temporary location on disk.
@@ -380,7 +401,7 @@ def download_id(pid, dir, opener=None, headers=None, image_quality: str = 'origi
         trycount = 0
         while trycount < retry:
             try:
-                opener_urlretrieve(url=request.Request(tu_url, headers=head), opener=opener, filename=dir +
+                custom_urlretrieve(url=request.Request(tu_url, headers=head), opener=opener, filename=dir +
                                    filename, reporthook=illustration.progressbar)
                 print()
                 print(f'times:{trycount} from {tu_url} 下载 {filename} 成功')
@@ -437,13 +458,6 @@ def __open_driver_save_cookie():
     WebDriverWait(driver=driver, timeout=99999).until(
         expected_conditions.title_is('pixiv'))
 
-    # 跳转到发现页面
-    # driver.get(discover_page)
-
-    # WebDriverWait(driver=driver, timeout=10000).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, '_2RNjBox')))
-    # WebDriverWait(driver=driver, timeout=10000).until(
-    #     expected_conditions.title_is('pixiv'))
-
     # 获得cookie并打印
     cookies = driver.get_cookies()
 
@@ -489,11 +503,12 @@ def __until_linkup(opener=None):
 
 
 if __name__ == '__main__':
-    headers = recordcookie.get_head_with_cookie()
-    op = config.build_custom_opener()
+    # headers = recordcookie.get_head_with_cookie()
+    # op = config.build_custom_opener()
     # test = illustration('94215843')
     # print(test.get_srclist(op, headers))
     # print(test.get_name(op,headers=headers))
+    # test.download(path.get_data_dir(),opener=op,headers=headers)
 
     # input('done')
 

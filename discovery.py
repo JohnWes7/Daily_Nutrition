@@ -6,7 +6,6 @@ from src import tool
 if __name__=='__main__':
     tool.check()
 import json
-from urllib import request
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions
@@ -141,28 +140,13 @@ def open_discovery():
     driver.quit()
 
 
-def test():
-    # bookmark_event_url2 = 'https://event.pixiv-recommend.net/?platform=pc&action=click-bookmark'
-    # sample1 = "https://event.pixiv-recommend.net/?platform=pc&action=click-bookmark&zone=discovery&method=clustering_bqalgc&illust_id=92834061&seed_illust_ids=90553117%2C93470454%2C93623887%2C93790321&login=yes&user_id=25832134&p_ab_id=2&p_ab_id_2=8&p_ab_d_id=773787977"
-    # sample2 = 'https://event.pixiv-recommend.net/?platform=pc&action=click-bookmark&zone=discovery&method=clustering_bqalgc&illust_id=91975962&seed_illust_ids=86075831%2C91123048%2C91766083%2C93623887%2C93686296%2C93790321&login=yes&user_id=25832134&p_ab_id=0&p_ab_id_2=2&p_ab_d_id=320056489'
-    # match = re.match(
-    #     'https://event.pixiv-recommend.net/\?platform=pc&action=click-bookmark.*', sample1)
-    # print(match.group())
-
-    # opener = downloads.build_custom_opener()
-    # request.urlopen
-    # request.urlretrieve
-    # request.install_opener
-
-    pass
-
-
-def get_pid_list():
+def get_pid_list() -> list[downloads.illustration]:
     d_list = []
+    global post_list
     for item in post_list:
         id = item.get('illust_id')
-        if not id == None:
-            d_list.append(id)
+        if id:
+            d_list.append(downloads.illustration(id))
 
     return d_list
 
@@ -177,14 +161,46 @@ if __name__ == '__main__':
     # 保存这次浏览
     tool.save_str_data(path.get_bookmarkdata_path(), json.dumps(post_list))
 
+    #打印
     d_list = get_pid_list()
-    print(f'开始执行下载\n将要执行下载：{len(d_list)}\nlist:', d_list)
+    print(f'开始执行下载\n将要执行下载：{len(d_list)}\nlist:')
+    for tu in d_list:
+        print(tu.id,end=' ')
+    print()
 
+    input('按下回车开始下载')
     # 执行下载
-    try:
-        downloads.download_idlist(
-            id_list=d_list, head=recordcookie.get_head_with_cookie())
-    except Exception as e:
-        print('下载发生错误 Exception: ', e)
+    opener = config.build_custom_opener()
+    headers = recordcookie.get_head_with_cookie()
+    for tu in d_list:
+        print('='*30,tu.id,'='*30)
 
+        print('尝试插画信息')
+        for i in range(config.get_retry()):
+            try:
+                print(f'access num:{i}',tu.get_name(opener=opener,headers=headers))
+                break
+            except Exception as e:
+                print(e)
+        
+        print('尝试获取图片源')
+        for i in range(config.get_retry()):
+            try:
+                print(f'access num:{i}')
+                temp = tu.get_srclist(opener=opener,headers=headers)
+                for i,p in enumerate(temp):
+                    print(f'p{i}:',p.get('urls').get(config.get_image_quality()))
+                break
+            except Exception as e:
+                print(e)
+        
+        print('尝试下载')
+        for i in range(config.get_retry()):
+            try:
+                print(f'access num:{i}')
+                tu.download(path.get_tutu_dir(),opener=opener,headers=headers,image_quality=config.get_image_quality())
+                break
+            except Exception as e:
+                print(e)
+        print()
     input('done')

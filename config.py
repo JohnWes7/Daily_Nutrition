@@ -7,7 +7,7 @@ import os
 import json
 import configparser
 from urllib import request
-from src import tool
+
 
 
 class path:
@@ -124,6 +124,7 @@ class recordcookie:
 
     @staticmethod
     def get_head_with_cookie():
+        from src import tool
         '''获取本地cookie'''
         head = recordcookie.headtemplate
 
@@ -181,6 +182,7 @@ class recordcookie:
 
     @staticmethod
     def update_local_cookies(newcookies: list):
+        from src import tool
         '''
         用新cookie 更新到本地
         '''
@@ -195,6 +197,7 @@ class recordcookie:
 
     @staticmethod
     def append_record_pid_local(pid, is_success):
+        from src import tool
         '''
         将pid根据是否成功添加到本地下载记录列表
         下载pid后回调函数
@@ -212,6 +215,7 @@ class recordcookie:
 
     @staticmethod
     def contrast_with_localrecord(id_list: list):
+        from src import tool
         '''
         和本地下载记录对比 返回一个字典包含了 
         record：本地下载列表
