@@ -14,7 +14,7 @@ from selenium.webdriver.support import expected_conditions
 from config import path
 from config import url
 from config import config
-from config import cookie
+from config import recordcookie
 from bs4 import BeautifulSoup
 import json
 import os
@@ -58,7 +58,7 @@ class illustration:
         if kb > 1024:
             mb = kb/1024
             size = '{0:.2f}MB'.format(mb)
-        
+
         count = int(barmaxcount*per)
 
         print('\rdownload {0:.2f}% :|{1}{2}| total:{3}'.format(
@@ -156,7 +156,7 @@ def opener_urlretrieve(url, opener: request.OpenerDirector = None, filename=None
     """
     if opener is None:
         opener = request.build_opener()
-    
+
     u = url
     if type(url) == request.Request:
         u = url.full_url
@@ -207,63 +207,13 @@ def opener_urlretrieve(url, opener: request.OpenerDirector = None, filename=None
     return result
 
 
-def __open_driver_save_cookie():
-    '''打开浏览器进行手动登录并且更新本地cookie'''
-    discover_page = 'https://www.pixiv.net/discovery'
-
-    print(f'setting browser: {config.get_browser()}')
-    # 根据设置获得浏览器 options
-    od_dict = custom_driver.get_custom_options_desired_capabilities(
-        config.get_browser(), is_proxy=config.get_is_proxies())
-    driver = custom_driver.get_custom_driver(
-        config.get_browser(), options=od_dict.get('options'))
-
-    print(type(driver))
-    # 打开登录页面
-    driver.get(url=url.pixiv_login_page)
-
-    # 到登录界面加载完成
-    WebDriverWait(driver=driver, timeout=99999).until(
-        expected_conditions.title_is('pixiv'))
-
-    # 跳转到发现页面
-    # driver.get(discover_page)
-
-    # WebDriverWait(driver=driver, timeout=10000).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, '_2RNjBox')))
-    # WebDriverWait(driver=driver, timeout=10000).until(
-    #     expected_conditions.title_is('pixiv'))
-
-    # 获得cookie并打印
-    cookies = driver.get_cookies()
-
-    # 关闭浏览器
-    driver.quit()
-
-    # 保存cookie
-    cookie.update_local_cookies(newcookies=cookies)
-
-
-def build_custom_opener() -> request.OpenerDirector:
-    '''根据config.ini创建一个具有代理的opener'''
-    if config.get_is_proxies():
-        # 代理
-        proxies = config.get_proxies_dict()
-        prox = request.ProxyHandler(proxies=proxies)
-        # opener
-        opener = request.build_opener(prox)
-        return opener
-    else:
-        opener = request.build_opener()
-        return opener
-
-
 def dicovery_json(head=None, opener=None):
     '''获取发现api数据'''
     # 检查传入opener
     if opener is None:
         opener = request.build_opener()
     if head == None:
-        head = cookie.get_headtemplate()
+        head = recordcookie.get_headtemplate()
 
     # 更改header
     head['referer'] = 'https://www.pixiv.net/discovery'
@@ -286,23 +236,6 @@ def dicovery_json(head=None, opener=None):
     return resp_json
 
 
-def append_record_pid_local(pid, is_success):
-    '''
-    将pid根据是否成功添加到本地下载记录列表
-    下载pid后回调函数
-    '''
-    # 如果没有成功下载不执行
-    if not is_success:
-        return
-
-    record = tool.get_json_data(path=path.get_download_record_path())
-    if record == None:
-        record = []
-
-    record.append(pid)
-    tool.save_str_data(path.get_download_record_path(), json.dumps(record))
-
-
 def download_idlist(id_list: list, dir, opener=None, head=None, callback_delegate: FunctionType = None, retry=3, iscover=False):
     '''
     下载所有的id_list 里面的 pid
@@ -322,8 +255,9 @@ def download_idlist(id_list: list, dir, opener=None, head=None, callback_delegat
     success_list = []
     for i, id in enumerate(id_list):
         print(f'list[{i}]: ', end='')
-        
-        is_success = download_id(pid=id, dir=dir, headers=head, opener=opener, image_quality=config.get_image_quality(), callback_delegate=callback_delegate, retry=retry, iscover=iscover)
+
+        is_success = download_id(pid=id, dir=dir, headers=head, opener=opener, image_quality=config.get_image_quality(
+        ), callback_delegate=callback_delegate, retry=retry, iscover=iscover)
         if is_success:
             success_list.append(id)
         print()
@@ -446,7 +380,7 @@ def download_id(pid, dir, opener=None, headers=None, image_quality: str = 'origi
         trycount = 0
         while trycount < retry:
             try:
-                opener_urlretrieve(url=request.Request(tu_url,headers=head), opener=opener, filename=dir +
+                opener_urlretrieve(url=request.Request(tu_url, headers=head), opener=opener, filename=dir +
                                    filename, reporthook=illustration.progressbar)
                 print()
                 print(f'times:{trycount} from {tu_url} 下载 {filename} 成功')
@@ -484,25 +418,40 @@ def parsing_tutu_data2(jsondata):
     return id_list
 
 
-def __tips():
-    '''debug 打印'''
-    print('='*30, 'Tips', '='*30)
-    print('当前设置:')
-    print(f'图片质量image_quality : {config.get_image_quality()}')
-    print(f'是否覆盖is_cover : {config.get_is_cover()}')
-    print(f'浏览器browser : {config.get_browser()}')
-    print(f'是否强制登录forcelogin : {config.get_forcelogin()}')
-    print(f'下载保存路径download_path : {config.get_ads_download_path()}')
-    print(f'代理 is_proxies : {config.get_is_proxies()}')
-    print(config.get_proxies_dict())
-    print(f'api查询字符串参数：\n{config.get_discovery_query_dict()}')
-    print(f'是否跳过记录中的pid skip_recorded : {config.get_skip_recorded()}')
-    print(f'cookie_path:{path.get_cookie_path()}')
-    print(f'discovery返回数据path:{path.get_ajax_discovery_data_path()}')
-    print(f'需要谷歌驱动位置:{path.get_chromedriver_exe_path()}')
-    print(f'需要火狐驱动位置:{path.get_geckodriver_exe_path()}')
-    print(f'需要Edge驱动位置:{path.get_edgedriver_exe_path()}')
-    print('='*60)
+def __open_driver_save_cookie():
+    '''打开浏览器进行手动登录并且更新本地cookie'''
+    discover_page = 'https://www.pixiv.net/discovery'
+
+    print(f'setting browser: {config.get_browser()}')
+    # 根据设置获得浏览器 options
+    od_dict = custom_driver.get_custom_options_desired_capabilities(
+        config.get_browser(), is_proxy=config.get_is_proxies())
+    driver = custom_driver.get_custom_driver(
+        config.get_browser(), options=od_dict.get('options'))
+
+    print(type(driver))
+    # 打开登录页面
+    driver.get(url=url.pixiv_login_page)
+
+    # 到登录界面加载完成
+    WebDriverWait(driver=driver, timeout=99999).until(
+        expected_conditions.title_is('pixiv'))
+
+    # 跳转到发现页面
+    # driver.get(discover_page)
+
+    # WebDriverWait(driver=driver, timeout=10000).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, '_2RNjBox')))
+    # WebDriverWait(driver=driver, timeout=10000).until(
+    #     expected_conditions.title_is('pixiv'))
+
+    # 获得cookie并打印
+    cookies = driver.get_cookies()
+
+    # 关闭浏览器
+    driver.quit()
+
+    # 保存cookie
+    recordcookie.update_local_cookies(newcookies=cookies)
 
 
 def __force_login():
@@ -520,7 +469,7 @@ def __until_linkup(opener=None):
         try:
             print('尝试连接pixiv获取数据')
             print('加载header')
-            head = cookie.get_head_with_cookie()
+            head = recordcookie.get_head_with_cookie()
             print('连接 pixiv')
             discoveryjson = dicovery_json(head=head, opener=opener)
             break
@@ -539,47 +488,22 @@ def __until_linkup(opener=None):
     return discoveryjson
 
 
-def contrast_with_localrecord(id_list: list):
-    '''
-    和本地下载记录对比 返回一个字典包含了 
-    record：本地下载列表
-    unrecord：对比之后发现没有被记录的
-    recorded：已经被记录过的项
-    '''
-    record = tool.get_json_data(path.get_download_record_path())
-    if record == None:
-        record = []
-
-    recorded = []
-    unrecord = []
-    for id in id_list:
-        if id in record:
-            recorded.append(id)
-        else:
-            unrecord.append(id)
-
-    id_dict = {
-        'record': record,
-        'unrecord': unrecord,
-        'recorded': recorded
-    }
-    return id_dict
-
-
 if __name__ == '__main__':
-    headers = cookie.get_head_with_cookie()
-    op = build_custom_opener()
+    headers = recordcookie.get_head_with_cookie()
+    op = config.build_custom_opener()
     # test = illustration('94215843')
     # print(test.get_srclist(op, headers))
     # print(test.get_name(op,headers=headers))
 
     # input('done')
-    __tips()
+
+    # debug打印
+    config.tips()
 
     # 是否强制执行登录
     __force_login()
 
-    opener = build_custom_opener()
+    opener = config.build_custom_opener()
 
     # 直到连接上pixiv 并返回json推荐数据
     discoveryjson = __until_linkup(opener=opener)
@@ -592,7 +516,7 @@ if __name__ == '__main__':
     id_list = parsing_tutu_data2(discoveryjson)
     print(f'pixiv 根据xp推荐 返回了{len(id_list)}个pid ：\n{id_list}')
     # 对比
-    id_dict = contrast_with_localrecord(id_list)
+    id_dict = recordcookie.contrast_with_localrecord(id_list)
     print('其中有', len(id_dict.get('recorded')), '个id已经下载过 : \n', id_dict.get(
         'recorded'), '\n剩余', len(id_dict.get('unrecord')), '个 : \n', id_dict.get('unrecord'))
     need_d = (id_dict.get('unrecord')
@@ -602,9 +526,9 @@ if __name__ == '__main__':
 
     # 下载list中的所有pidhua
     print('='*30, '开始下载', '='*30)
-    head = cookie.get_head_with_cookie()
+    head = recordcookie.get_head_with_cookie()
     success_list = download_idlist(
-        id_list=need_d, dir=path.get_tutu_dir(), retry=config.get_retry(), iscover=config.get_is_cover(), opener=opener, head=head, callback_delegate=append_record_pid_local)
+        id_list=need_d, dir=path.get_tutu_dir(), retry=config.get_retry(), iscover=config.get_is_cover(), opener=opener, head=head, callback_delegate=recordcookie.append_record_pid_local)
     print(f'下载成功数 ：{len(success_list)}')
     print(success_list)
     #

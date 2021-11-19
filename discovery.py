@@ -13,7 +13,7 @@ from selenium.webdriver.support import expected_conditions
 from config import url
 from config import path
 from config import config
-from config import cookie
+from config import recordcookie
 import downloads
 from src import custom_driver
 import re
@@ -122,7 +122,7 @@ def open_discovery():
     WebDriverWait(driver=driver, timeout=99999).until(expected_conditions.title_is('pixiv'))
     print('更新本地cookie并跳转')
     cookies = driver.get_cookies()
-    cookie.update_local_cookies(cookies)
+    recordcookie.update_local_cookies(cookies)
 
     
     try:
@@ -133,7 +133,7 @@ def open_discovery():
                       poll_frequency=1).until(delegate_title_is_pixiv)
         print('更新本地cookie')
         cookies = driver.get_cookies()
-        cookie.update_local_cookies(cookies)
+        recordcookie.update_local_cookies(cookies)
     except Exception as e:
         print(e)
     
@@ -183,7 +183,7 @@ if __name__ == '__main__':
     # 执行下载
     try:
         downloads.download_idlist(
-            id_list=d_list, head=cookie.get_head_with_cookie())
+            id_list=d_list, head=recordcookie.get_head_with_cookie())
     except Exception as e:
         print('下载发生错误 Exception: ', e)
 
