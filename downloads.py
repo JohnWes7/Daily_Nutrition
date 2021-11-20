@@ -257,7 +257,7 @@ def dicovery_json(head=None, opener=None):
     return resp_json
 
 
-def download_idlist(id_list: list, dir, opener=None, head=None, callback_delegate: FunctionType = None, retry=3, iscover=False):
+def download_idlist(id_list: list[str], dir, opener=None, head=None, callback_delegate: FunctionType = None, retry=3, iscover=False):
     '''
     下载所有的id_list 里面的 pid
     返回所有下载成功的pid\n
@@ -286,7 +286,7 @@ def download_idlist(id_list: list, dir, opener=None, head=None, callback_delegat
     return success_list
 
 
-def download_id(pid, dir, opener=None, headers=None, image_quality: str = 'original',  callback_delegate: FunctionType = None, retry=3, iscover=False):
+def download_id(pid:str, dir, opener=None, headers=None, image_quality: str = 'original',  callback_delegate: FunctionType = None, retry=3, iscover=False):
     '''
     pid 要下载的pid image_quality图片质量\n
     如果传入了委托  会在函数最后结束时调用 委托会传入一个 pid: str 和 is_success: bool\n
@@ -311,7 +311,7 @@ def download_id(pid, dir, opener=None, headers=None, image_quality: str = 'origi
     # 抓图片源url 回应图片源json
     src_url = f'https://www.pixiv.net/ajax/illust/{pid}/pages?lang=zh'
     head['referer'] = f'https://www.pixiv.net/artworks/{pid}'
-    description_xpath = '//head/meta[@property="twitter:title"]/@content'
+    #description_xpath = '//head/meta[@property="twitter:title"]/@content'
 
     # 抓取图片信息
     # 包含名字和作者 simple:どちらが好きですか？ by 倉科ゆづき
@@ -402,7 +402,7 @@ def download_id(pid, dir, opener=None, headers=None, image_quality: str = 'origi
         while trycount < retry:
             try:
                 custom_urlretrieve(url=request.Request(tu_url, headers=head), opener=opener, filename=dir +
-                                   filename, reporthook=illustration.progressbar)
+                                   filename, reporthook=lambda bn,bs,total: illustration.progressbar(bn,bs,total,tu_title))
                 print()
                 print(f'times:{trycount} from {tu_url} 下载 {filename} 成功')
                 is_successful.append(True)
