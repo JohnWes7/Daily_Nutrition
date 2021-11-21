@@ -147,7 +147,7 @@ def get_pid_list() -> list[downloads.illustration]:
         id = item.get('illust_id')
         if id:
             d_list.append(downloads.illustration(id))
-
+            
     return d_list
 
 

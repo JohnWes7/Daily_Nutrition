@@ -4,6 +4,7 @@
 '''
 
 
+from posixpath import relpath
 from src import tool
 if __name__ == '__main__':
     tool.check()
@@ -133,7 +134,7 @@ class illustration:
 
         return self.__srclist
 
-    def download(self, dir, opener=None, headers=None, image_quality: str = 'original', reporthook=progressbar):
+    def download(self, dir:str, opener=None, headers=None, image_quality: str = 'original', reporthook=progressbar):
         global _opener
         if opener == None:
             if _opener == None:
@@ -142,6 +143,11 @@ class illustration:
                 opener = _opener
             if headers == None:
                 headers = _headtemplate
+        
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        else:
+            raise Exception('文件夹路径不存在')
 
         srclist = self.get_srclist(opener=opener, headers=headers)
         name = self.get_name(opener=opener, headers=headers)
@@ -152,9 +158,16 @@ class illustration:
             imageurl = url.get('urls').get(image_quality)
             temp = os.path.splitext(imageurl)
             suffix = temp[len(temp) - 1]
-            filename = f'{self.id}_{name}_p{p}{suffix}'
+            name = f'{self.id}_{name}_p{p}{suffix}'
+
+            if dir[len(dir)-1] == '/' or dir[len(dir)-1] == '\\':
+                filename = dir + name
+            else:
+                filename = dir + '/' + name
+ 
+            filename = dir
             custom_urlretrieve(request.Request(imageurl, headers=head), opener=opener,
-                               filename=dir+filename, reporthook=lambda bn, bs, total: illustration.progressbar(bn,bs,total,f'{name} p{p}'))
+                               filename=filename, reporthook=lambda bn, bs, total: reporthook(bn,bs,total,f'{name} p{p}'))
             print()
 
 
