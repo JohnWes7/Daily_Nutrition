@@ -85,8 +85,8 @@ def delegate_title_is_pixiv(x: WebDriver):
     log = x.get_log('performance')
     analysis_log(log, post_list)
 
-    title = x.title
-    return 'pixiv'.__eq__(title)
+    
+    return x.current_url.__eq__('https://www.pixiv.net/stacc?mode=unify')
 
 
 def open_discovery():
