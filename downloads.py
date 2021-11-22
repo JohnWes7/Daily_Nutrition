@@ -146,8 +146,6 @@ class illustration:
         
         if not os.path.exists(dir):
             os.makedirs(dir)
-        else:
-            raise Exception('文件夹路径不存在')
 
         srclist = self.get_srclist(opener=opener, headers=headers)
         name = self.get_name(opener=opener, headers=headers)
@@ -160,12 +158,19 @@ class illustration:
             suffix = temp[len(temp) - 1]
             name = f'{self.id}_{name}_p{p}{suffix}'
 
+            filename = ''
             if dir[len(dir)-1] == '/' or dir[len(dir)-1] == '\\':
                 filename = dir + name
             else:
                 filename = dir + '/' + name
- 
-            filename = dir
+            while True:
+                if os.path.exists(filename):
+                    filename += '(1)'
+                else:
+                    break
+                
+
+
             custom_urlretrieve(request.Request(imageurl, headers=head), opener=opener,
                                filename=filename, reporthook=lambda bn, bs, total: reporthook(bn,bs,total,f'{name} p{p}'))
             print()
@@ -417,7 +422,7 @@ def download_id(pid:str, dir, opener=None, headers=None, image_quality: str = 'o
                 custom_urlretrieve(url=request.Request(tu_url, headers=head), opener=opener, filename=dir +
                                    filename, reporthook=lambda bn,bs,total: illustration.progressbar(bn,bs,total,tu_title))
                 print()
-                print(f'times:{trycount} from {tu_url} 下载 {filename} 成功')
+                #print(f'times:{trycount} from {tu_url} 下载 {filename} 成功')
                 is_successful.append(True)
                 break
             except Exception as e:
